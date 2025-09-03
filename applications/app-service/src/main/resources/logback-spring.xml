@@ -1,0 +1,27 @@
+<configuration>
+
+    <!-- Consola -->
+    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!-- Patrón de log:
+                 %d = fecha y hora
+                 [%thread] = nombre del hilo
+                 [%X{requestId}] = requestId del MDC
+                 %-5level = nivel de log
+                 %logger{36} = nombre del logger acortado
+                 - %msg%n = mensaje -->
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} [%thread] [%X{requestId}] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Nivel por defecto -->
+    <root level="INFO">
+        <appender-ref ref="Console" />
+    </root>
+
+    <!-- Nivel específico para tu paquete API (DEBUG para desarrollo) -->
+    <logger name="co.com.pragma.autenticacion.api" level="DEBUG" additivity="false">
+        <appender-ref ref="Console"/>
+    </logger>
+
+</configuration>
