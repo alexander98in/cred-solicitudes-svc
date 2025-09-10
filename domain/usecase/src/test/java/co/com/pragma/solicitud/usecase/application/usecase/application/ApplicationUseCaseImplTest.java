@@ -1,33 +1,44 @@
 package co.com.pragma.solicitud.usecase.application.usecase.application;
 
 import co.com.pragma.solicitud.model.application.Application;
+import co.com.pragma.solicitud.model.application.ApplicationDetails;
+import co.com.pragma.solicitud.model.application.ApplicationFilter;
+import co.com.pragma.solicitud.model.application.PaginatedApplications;
+import co.com.pragma.solicitud.model.application.gateways.ApplicationCustomRepository;
 import co.com.pragma.solicitud.model.application.gateways.ApplicationRepository;
+import co.com.pragma.solicitud.model.loantype.LoanType;
 import co.com.pragma.solicitud.model.loantype.gateways.LoanTypeRepository;
+import co.com.pragma.solicitud.model.status.Status;
 import co.com.pragma.solicitud.model.status.gateways.StatusRepository;
 import co.com.pragma.solicitud.model.user.RemoteUser;
 import co.com.pragma.solicitud.model.user.gateways.ExternalUserService;
 import co.com.pragma.solicitud.usecase.application.ApplicationUseCaseImpl;
+import co.com.pragma.solicitud.usecase.exceptions.BusinessRuleViolationException;
 import co.com.pragma.solicitud.usecase.exceptions.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
-import static org.mockito.Mockito.*;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
 public class ApplicationUseCaseImplTest {
 
     @Mock
     private ApplicationRepository applicationRepository;
+
+    @Mock
+    private ExternalUserService externalUserService;
 
     @Mock
     private StatusRepository statusRepository;
@@ -36,106 +47,210 @@ public class ApplicationUseCaseImplTest {
     private LoanTypeRepository loanTypeRepository;
 
     @Mock
-    private ExternalUserService externalUserService;
+    private ApplicationCustomRepository applicationCustomRepository;
 
-    private ApplicationUseCaseImpl applicationUseCase;
+    @InjectMocks
+    private ApplicationUseCaseImpl useCase;
+
+    private UUID userId;
+    private UUID loanTypeId;
+    private UUID statusId;
+    private Application application;
+    private RemoteUser remoteUser;
+    private LoanType loanType;
+    private Status status;
 
     @BeforeEach
     void setUp() {
-        applicationUseCase = new ApplicationUseCaseImpl(applicationRepository, externalUserService, statusRepository, loanTypeRepository);
-    }
+        MockitoAnnotations.openMocks(this);
 
-    private Application baseApplication() {
-        return Application.builder()
-                .idApplication(UUID.randomUUID())
-                .amount(new BigDecimal("1000000"))
+        userId = UUID.randomUUID();
+        loanTypeId = UUID.randomUUID();
+        statusId = UUID.randomUUID();
+
+        application = Application.builder()
+                .amount(new BigDecimal("1000"))
                 .term(12)
-                .email("test@domain.com")
-                .idStatus(UUID.randomUUID())
-                .idLoanType(UUID.randomUUID())
-                .idUser(UUID.randomUUID())
+                .idLoanType(loanTypeId)
+                .build();
+
+        remoteUser = new RemoteUser(
+                userId, "John", "Doe", "john.doe@email.com",
+                "123456", "3001234567", new BigDecimal("2000"), null, null, null
+        );
+
+        loanType = LoanType.builder()
+                .idLoanType(loanTypeId)
+                .minAmount(new BigDecimal("500"))
+                .maxAmount(new BigDecimal("5000"))
+                .interestRate(new BigDecimal("5"))
+                .build();
+
+        status = Status.builder()
+                .idStatus(statusId)
+                .description("Pendiente de revisión")
                 .build();
     }
 
     @Test
-    void createApplication_success() {
-        // given
-        Application application = baseApplication();
-        String documentId = "1061811110";
+    void createApplication_Success() {
+        when(statusRepository.getStatusByDescription("Pendiente de revisión")).thenReturn(Mono.just(status));
+        when(loanTypeRepository.getLoanTypeById(loanTypeId)).thenReturn(Mono.just(loanType));
+        when(externalUserService.getUserByEmail("john.doe@email.com")).thenReturn(Mono.just(remoteUser));
+        when(applicationRepository.saveApplication(any(Application.class))).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
 
-        // Mocking
-        when(statusRepository.existsStatusById(application.getIdStatus())).thenReturn(Mono.just(true));
-        when(loanTypeRepository.existsLoanTypeById(application.getIdLoanType())).thenReturn(Mono.just(true));
-        when(externalUserService.getUserByDocumentId(documentId))
-                .thenReturn(Mono.just(new RemoteUser(UUID.randomUUID(), "Juan", "Perez", "juan@domain.com", documentId, "3234703198", new BigDecimal("1500000"), null, "Calle 25", UUID.randomUUID())));
+        Mono<Application> result = useCase.createApplication(application, "john.doe@email.com");
 
-        when(applicationRepository.saveApplication(application)).thenReturn(Mono.just(application));
+        StepVerifier.create(result)
+                .expectNextMatches(app -> app.getIdUser().equals(userId)
+                        && app.getIdStatus().equals(statusId)
+                        && app.getIdLoanType().equals(loanTypeId)
+                        && app.getEmail().equals(remoteUser.email())
+                        && app.getAmount().equals(application.getAmount()))
+                .verifyComplete();
+    }
 
-        // when & then
-        StepVerifier.create(applicationUseCase.createApplication(application, documentId))
+    @Test
+    void createApplication_Fail_UserNotFound() {
+        when(statusRepository.getStatusByDescription("Pendiente de revisión")).thenReturn(Mono.just(status));
+        when(loanTypeRepository.getLoanTypeById(loanTypeId)).thenReturn(Mono.just(loanType));
+        when(externalUserService.getUserByEmail("john.doe@email.com")).thenReturn(Mono.empty());
+
+        Mono<Application> result = useCase.createApplication(application, "john.doe@email.com");
+
+        StepVerifier.create(result)
+                .expectErrorMatches(throwable -> throwable instanceof ResourceNotFoundException
+                        && throwable.getMessage().contains("El usuario con email"))
+                .verify();
+    }
+
+    @Test
+    void createApplication_Fail_LoanTypeNotFound() {
+        when(statusRepository.getStatusByDescription("Pendiente de revisión"))
+                .thenReturn(Mono.just(status));
+        when(loanTypeRepository.getLoanTypeById(loanTypeId))
+                .thenReturn(Mono.empty());
+        when(externalUserService.getUserByEmail(anyString()))
+                .thenReturn(Mono.just(remoteUser)); // mockeo necesario
+
+        Mono<Application> result = useCase.createApplication(application, "john.doe@email.com");
+
+        StepVerifier.create(result)
+                .expectErrorMatches(throwable -> throwable instanceof ResourceNotFoundException
+                        && throwable.getMessage().contains("El tipo de prestamo con ID"))
+                .verify();
+    }
+
+    @Test
+    void createApplication_Fail_StatusNotFound() {
+        when(statusRepository.getStatusByDescription("Pendiente de revisión"))
+                .thenReturn(Mono.empty());
+        when(loanTypeRepository.getLoanTypeById(loanTypeId))
+                .thenReturn(Mono.just(loanType));
+        when(externalUserService.getUserByEmail(anyString()))
+                .thenReturn(Mono.just(remoteUser));
+
+        Mono<Application> result = useCase.createApplication(application, "john.doe@email.com");
+
+        StepVerifier.create(result)
+                .expectErrorMatches(throwable -> throwable instanceof ResourceNotFoundException
+                        && throwable.getMessage().contains("Estado 'Pendiente de revisión'"))
+                .verify();
+    }
+
+    @Test
+    void createApplication_Fail_AmountBelowMin() {
+        application.setAmount(new BigDecimal("100")); // menos que minAmount
+
+        when(statusRepository.getStatusByDescription("Pendiente de revisión")).thenReturn(Mono.just(status));
+        when(loanTypeRepository.getLoanTypeById(loanTypeId)).thenReturn(Mono.just(loanType));
+        when(externalUserService.getUserByEmail("john.doe@email.com")).thenReturn(Mono.just(remoteUser));
+
+        Mono<Application> result = useCase.createApplication(application, "john.doe@email.com");
+
+        StepVerifier.create(result)
+                .expectError(BusinessRuleViolationException.class)
+                .verify();
+    }
+
+    @Test
+    void createApplication_Fail_AmountAboveMax() {
+        application.setAmount(new BigDecimal("10000")); // más que maxAmount
+
+        when(statusRepository.getStatusByDescription("Pendiente de revisión")).thenReturn(Mono.just(status));
+        when(loanTypeRepository.getLoanTypeById(loanTypeId)).thenReturn(Mono.just(loanType));
+        when(externalUserService.getUserByEmail("john.doe@email.com")).thenReturn(Mono.just(remoteUser));
+
+        Mono<Application> result = useCase.createApplication(application, "john.doe@email.com");
+
+        StepVerifier.create(result)
+                .expectError(BusinessRuleViolationException.class)
+                .verify();
+    }
+
+    @Test
+    void getAllApplications_Success() {
+        Application app1 = application;
+        Application app2 = application.toBuilder().amount(new BigDecimal("2000")).build();
+
+        when(applicationRepository.findAllApplications()).thenReturn(Flux.just(app1, app2));
+
+        StepVerifier.create(useCase.getAllApplications())
+                .expectNext(app1)
+                .expectNext(app2)
+                .verifyComplete();
+    }
+
+    @Test
+    void getApplicationById_Success() {
+        UUID appId = UUID.randomUUID();
+        application.setIdApplication(appId);
+
+        when(applicationRepository.findApplicationById(appId)).thenReturn(Mono.just(application));
+
+        StepVerifier.create(useCase.getApplicationById(appId))
                 .expectNext(application)
                 .verifyComplete();
-
-        // Verify interactions
-        verify(statusRepository).existsStatusById(application.getIdStatus());
-        verify(loanTypeRepository).existsLoanTypeById(application.getIdLoanType());
-        verify(externalUserService).getUserByDocumentId(documentId);
-        verify(applicationRepository).saveApplication(application);
-        verifyNoMoreInteractions(statusRepository, loanTypeRepository, externalUserService, applicationRepository);
     }
 
     @Test
-    void createApplication_loanTypeNotFound() {
-        // given
-        Application application = baseApplication();
-        String documentId = "1061811110";
+    void getApplicationById_NotFound() {
+        UUID appId = UUID.randomUUID();
 
-        // Mocking
-        when(statusRepository.existsStatusById(application.getIdStatus())).thenReturn(Mono.just(true));
-        when(loanTypeRepository.existsLoanTypeById(application.getIdLoanType())).thenReturn(Mono.just(false));
-        when(externalUserService.getUserByDocumentId(documentId))
-                .thenReturn(Mono.just(new RemoteUser(UUID.randomUUID(),
-                        "Juan", "Perez", "juan.perez@gmail.com" + documentId, "1061811110",
-                        "3234704755", new BigDecimal(1011222), LocalDate.now(), "Calle 25 N", UUID.randomUUID())));
+        when(applicationRepository.findApplicationById(appId)).thenReturn(Mono.empty());
 
-        // when & then
-        StepVerifier.create(applicationUseCase.createApplication(application, documentId))
-                .expectErrorSatisfies(ex -> {
-                    assertThat(ex).isInstanceOf(ResourceNotFoundException.class);
-                    assertThat(ex.getMessage()).contains("No existe el tipo de crédito");
-                })
+        StepVerifier.create(useCase.getApplicationById(appId))
+                .expectError(ResourceNotFoundException.class)
                 .verify();
-
-        // Verify interactions
-        verify(statusRepository).existsStatusById(application.getIdStatus());
-        verify(loanTypeRepository).existsLoanTypeById(application.getIdLoanType());
-        verifyNoMoreInteractions(statusRepository, loanTypeRepository);
     }
 
     @Test
-    void createApplication_userNotFound() {
-        // given
-        Application application = baseApplication();
-        String documentId = "1061811110";
+    void getApplicationsByPage_Success() {
+        ApplicationFilter filter = new ApplicationFilter();
+        ApplicationDetails details = ApplicationDetails.builder()
+                .amount(application.getAmount())
+                .term(application.getTerm())
+                .email("john.doe@email.com")
+                .interestRate(loanType.getInterestRate())
+                .build();
 
-        // Mocking
-        when(statusRepository.existsStatusById(application.getIdStatus())).thenReturn(Mono.just(true));
-        when(loanTypeRepository.existsLoanTypeById(application.getIdLoanType())).thenReturn(Mono.just(true));
-        when(externalUserService.getUserByDocumentId(documentId))
-                .thenReturn(Mono.error(new ResourceNotFoundException("Usuario no encontrado con el documento: " + documentId)));
+        PaginatedApplications paginated = PaginatedApplications.builder()
+                .content(List.of(details))
+                .totalElements(1)
+                .pageNumber(0)
+                .pageSize(1)
+                .totalPages(1)
+                .first(true)
+                .last(true)
+                .numberOfElements(1)
+                .build();
 
-        // when & then
-        StepVerifier.create(applicationUseCase.createApplication(application, documentId))
-                .expectErrorSatisfies(ex -> {
-                    assertThat(ex).isInstanceOf(ResourceNotFoundException.class);
-                    assertThat(ex.getMessage()).contains("Usuario no encontrado");
-                })
-                .verify();
+        when(applicationCustomRepository.listApplicationsByCriteria(filter))
+                .thenReturn(Mono.just(paginated));
 
-        // Verify interactions
-        verify(statusRepository).existsStatusById(application.getIdStatus());
-        verify(loanTypeRepository).existsLoanTypeById(application.getIdLoanType());
-        verify(externalUserService).getUserByDocumentId(documentId);
-        verifyNoMoreInteractions(statusRepository, loanTypeRepository, externalUserService);
+        StepVerifier.create(useCase.getApplicationsByPage(filter))
+                .expectNextMatches(result -> result.getContent().size() == 1 &&
+                        result.getContent().get(0).getMonthlyInstallment() != null)
+                .verifyComplete();
     }
 }

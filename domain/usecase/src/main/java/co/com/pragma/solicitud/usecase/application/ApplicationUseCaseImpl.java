@@ -12,7 +12,7 @@ import co.com.pragma.solicitud.model.status.gateways.StatusRepository;
 import co.com.pragma.solicitud.model.user.RemoteUser;
 import co.com.pragma.solicitud.model.user.gateways.ExternalUserService;
 import co.com.pragma.solicitud.usecase.exceptions.BusinessRuleViolationException;
-import co.com.pragma.solicitud.usecase.exceptions.ErrorCodeDomain;
+import co.com.pragma.solicitud.usecase.utils.ErrorCodeDomain;
 import co.com.pragma.solicitud.usecase.exceptions.ResourceNotFoundException;
 import co.com.pragma.solicitud.usecase.utils.LoanMath;
 import lombok.RequiredArgsConstructor;
@@ -74,9 +74,6 @@ public class ApplicationUseCaseImpl implements ApplicationUseCase{
                     return applicationRepository.saveApplication(application);
                 })
                 .onErrorMap(e -> {
-                    if (e instanceof NullPointerException) {
-                        return new RuntimeException("Un valor requerido fue nulo: " + e.getMessage(), e);
-                    }
                     return e;
                 });
     }

@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springdoc.core.annotations.RouterOperation;
 import org.springdoc.core.annotations.RouterOperations;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -41,6 +42,7 @@ public class ApplicationRouterDocs {
                     operation = @Operation(
                             operationId = "registerApplication",
                             tags = { TAG },
+                            security = { @SecurityRequirement(name = "bearerAuth") },
                             summary = REG_SUMMARY,
                             description = REG_DESC,
                             requestBody = @RequestBody(required = true, content = @Content(
@@ -64,6 +66,7 @@ public class ApplicationRouterDocs {
                     operation = @Operation(
                             operationId = "listApplications",
                             tags = { TAG },
+                            security = { @SecurityRequirement(name = "bearerAuth") },
                             summary = LIST_SUMMARY,
                             description = LIST_DESC,
                             responses = @ApiResponse(responseCode = "200",
@@ -80,6 +83,7 @@ public class ApplicationRouterDocs {
                     operation = @Operation(
                             operationId = "getApplicationById",
                             tags = { TAG },
+                            security = { @SecurityRequirement(name = "bearerAuth") },
                             summary = GET_BY_ID_SUMMARY,
                             description = GET_BY_ID_DESC,
                             parameters = {
@@ -90,6 +94,38 @@ public class ApplicationRouterDocs {
                                     @ApiResponse(responseCode = "200", description = "OK",
                                             content = @Content(schema = @Schema(implementation = ApplicationResponseDTO.class))),
                                     @ApiResponse(responseCode = "404", description = "No encontrado")
+                            }
+                    )
+            ),
+            @RouterOperation(
+                    path = "/api/v1/solicitudes/lista-paginada",
+                    produces = { "application/json" },
+                    method = RequestMethod.GET,
+                    beanClass = ApplicationHandler.class,
+                    beanMethod = "listApplicationsPageable",
+                    operation = @Operation(
+                            operationId = "listApplicationsPageable",
+                            tags = { TAG },
+                            security = { @SecurityRequirement(name = "bearerAuth") },
+                            summary = "Listar solicitudes con filtros y paginación",
+                            description = "Permite listar solicitudes aplicando filtros opcionales por email, monto, tipo de préstamo, estado y salario, soportando paginación.",
+                            parameters = {
+                                    @Parameter(name = "email", in = ParameterIn.QUERY, description = "Filtrar por email del solicitante"),
+                                    @Parameter(name = "term", in = ParameterIn.QUERY, description = "Filtrar por plazo del préstamo (en meses)"),
+                                    @Parameter(name = "minAmount", in = ParameterIn.QUERY, description = "Monto mínimo del préstamo"),
+                                    @Parameter(name = "maxAmount", in = ParameterIn.QUERY, description = "Monto máximo del préstamo"),
+                                    @Parameter(name = "loanTypeName", in = ParameterIn.QUERY, description = "Filtrar por tipo de préstamo"),
+                                    @Parameter(name = "statusDescription", in = ParameterIn.QUERY, description = "Filtrar por estado de la solicitud"),
+                                    @Parameter(name = "minSalary", in = ParameterIn.QUERY, description = "Salario mínimo del solicitante"),
+                                    @Parameter(name = "maxSalary", in = ParameterIn.QUERY, description = "Salario máximo del solicitante"),
+                                    @Parameter(name = "page", in = ParameterIn.QUERY, description = "Número de página, por defecto 0"),
+                                    @Parameter(name = "size", in = ParameterIn.QUERY, description = "Tamaño de página, por defecto 10")
+                            },
+                            responses = {
+                                    @ApiResponse(responseCode = "200", description = "OK",
+                                            content = @Content(schema = @Schema(implementation = ApplicationResponseDTO.class))),
+                                    @ApiResponse(responseCode = "400", description = "Solicitud inválida"),
+                                    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                             }
                     )
             )

@@ -1,4 +1,4 @@
-package co.com.pragma.solicitud.usecase.exceptions;
+package co.com.pragma.solicitud.usecase.utils;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
