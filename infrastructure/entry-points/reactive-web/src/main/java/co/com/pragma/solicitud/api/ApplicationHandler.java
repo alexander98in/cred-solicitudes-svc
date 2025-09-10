@@ -4,6 +4,7 @@ import co.com.pragma.solicitud.api.common.ResponseUtil;
 import co.com.pragma.solicitud.api.dto.request.ApplicationRequestDTO;
 import co.com.pragma.solicitud.api.exceptions.RequestValidationException;
 import co.com.pragma.solicitud.api.facade.ApplicationFacade;
+import co.com.pragma.solicitud.model.application.ApplicationFilter;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,7 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
+import java.math.BigDecimal;
 import java.net.URI;
 
 @Component
@@ -59,6 +61,32 @@ public class ApplicationHandler {
                     .doOnError(e -> log.error("[{}] error en listApplications: {}", requestId, e.toString()))
                     .flatMap(list -> ResponseUtil.ok(req, "Listado de solicitudes", list));
         });
+    }
+
+    public Mono<ServerResponse> listApplicationsPageable(ServerRequest request) {
+        return Mono.defer(() -> {
+            String requestId = MDC.get(MDC_KEY);
+            ApplicationFilter filter = ApplicationFilter.builder()
+                    .email(request.queryParam("email").orElse(null))
+                    .term(request.queryParam("term").map(Integer::valueOf).orElse(null))
+                    .minAmount(request.queryParam("minAmount").map(BigDecimal::new).orElse(null))
+                    .maxAmount(request.queryParam("maxAmount").map(BigDecimal::new).orElse(null))
+                    .loanTypeName(request.queryParam("loanTypeName").orElse(null))
+                    .statusDescription(request.queryParam("statusDescription").orElse(null))
+                    .minSalary(request.queryParam("minSalary").map(BigDecimal::new).orElse(null))
+                    .maxSalary(request.queryParam("maxSalary").map(BigDecimal::new).orElse(null))
+                    .page(request.queryParam("page").map(Integer::valueOf).orElse(0))
+                    .size(request.queryParam("size").map(Integer::valueOf).orElse(10))
+                    .build();
+
+            log.info("[{}] GET /api/v1/solicitudes - listando con filtros: {}", requestId, filter);
+
+            return applicationFacade.getApplicationsByPage(filter)
+                    .doOnSuccess(list -> log.info("[{}] listado devuelto", requestId))
+                    .doOnError(e -> log.error("[{}] error en listApplicationsPageable: {}", requestId, e.toString()))
+                    .flatMap(paginatedApplications -> ResponseUtil.ok(request, "Listado de solicitudes con filtros", paginatedApplications));
+        });
+
     }
 
     private Mono<ApplicationRequestDTO> validate(ApplicationRequestDTO dto) {

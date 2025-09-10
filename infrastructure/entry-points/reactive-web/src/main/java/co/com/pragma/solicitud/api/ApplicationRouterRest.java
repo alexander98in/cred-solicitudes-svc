@@ -15,6 +15,7 @@ public class ApplicationRouterRest {
     @Bean
     public RouterFunction<ServerResponse> applicationRoutes(ApplicationHandler handler) {
         return route(POST("/api/v1/solicitudes"), handler::registerApplication)
-                .andRoute(GET("/api/v1/solicitudes/listar"), handler::listApplications);
+                .andRoute(GET("/api/v1/solicitudes/listar"), handler::listApplications)
+                .andRoute(GET("/api/v1/solicitudes/lista-paginada"), handler::listApplicationsPageable);
     }
 }

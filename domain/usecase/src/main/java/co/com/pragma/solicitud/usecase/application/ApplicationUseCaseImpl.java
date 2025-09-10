@@ -1,6 +1,9 @@
 package co.com.pragma.solicitud.usecase.application;
 
 import co.com.pragma.solicitud.model.application.Application;
+import co.com.pragma.solicitud.model.application.ApplicationFilter;
+import co.com.pragma.solicitud.model.application.PaginatedApplications;
+import co.com.pragma.solicitud.model.application.gateways.ApplicationCustomRepository;
 import co.com.pragma.solicitud.model.application.gateways.ApplicationRepository;
 import co.com.pragma.solicitud.model.loantype.LoanType;
 import co.com.pragma.solicitud.model.loantype.gateways.LoanTypeRepository;
@@ -11,6 +14,7 @@ import co.com.pragma.solicitud.model.user.gateways.ExternalUserService;
 import co.com.pragma.solicitud.usecase.exceptions.BusinessRuleViolationException;
 import co.com.pragma.solicitud.usecase.exceptions.ErrorCodeDomain;
 import co.com.pragma.solicitud.usecase.exceptions.ResourceNotFoundException;
+import co.com.pragma.solicitud.usecase.utils.LoanMath;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -25,6 +29,7 @@ public class ApplicationUseCaseImpl implements ApplicationUseCase{
     private final ExternalUserService externalUserService;
     private final StatusRepository statusRepository;
     private final LoanTypeRepository loanTypeRepository;
+    private final ApplicationCustomRepository applicationCustomRepository;
 
     @Override
     public Mono<Application> createApplication(Application application, String email) {
@@ -85,5 +90,23 @@ public class ApplicationUseCaseImpl implements ApplicationUseCase{
     public Mono<Application> getApplicationById(UUID id) {
         return applicationRepository.findApplicationById(id)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("No existe la solicitud con id: " + id)));
+    }
+
+    @Override
+    public Mono<PaginatedApplications> getApplicationsByPage(ApplicationFilter filter) {
+        return applicationCustomRepository.listApplicationsByCriteria(filter)
+                .map(paginated -> {
+                    paginated.getContent().forEach(app -> {
+                        BigDecimal installment = LoanMath.monthlyInstallment(
+                                app.getAmount(),
+                                app.getTerm(),
+                                app.getInterestRate() // anual en %
+                        );
+                        app.setMonthlyInstallment(installment);
+                        // app.setMonthlyDebt(...);
+                        // app.setMonthlyInstallment(...);
+                    });
+                    return paginated;
+                });
     }
 }

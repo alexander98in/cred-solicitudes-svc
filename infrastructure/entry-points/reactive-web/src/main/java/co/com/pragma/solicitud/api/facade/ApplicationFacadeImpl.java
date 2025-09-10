@@ -3,6 +3,8 @@ package co.com.pragma.solicitud.api.facade;
 import co.com.pragma.solicitud.api.dto.request.ApplicationRequestDTO;
 import co.com.pragma.solicitud.api.dto.response.ApplicationResponseDTO;
 import co.com.pragma.solicitud.api.mapper.ApplicationDTOMapper;
+import co.com.pragma.solicitud.model.application.ApplicationFilter;
+import co.com.pragma.solicitud.model.application.PaginatedApplications;
 import co.com.pragma.solicitud.model.auth.gateways.TokenService;
 import co.com.pragma.solicitud.usecase.application.ApplicationUseCase;
 import lombok.RequiredArgsConstructor;
@@ -50,5 +52,12 @@ public class ApplicationFacadeImpl implements ApplicationFacade {
     @Override
     public Mono<ApplicationResponseDTO> getApplicationById(String id) {
         return null;
+    }
+
+    @Override
+    public Mono<PaginatedApplications> getApplicationsByPage(ApplicationFilter filter) {
+        return Mono.defer(() ->
+                applicationUseCase.getApplicationsByPage(filter)
+        );
     }
 }
