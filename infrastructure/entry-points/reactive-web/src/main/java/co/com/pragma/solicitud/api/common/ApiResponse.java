@@ -4,7 +4,7 @@ import java.time.OffsetDateTime;
 
 public class ApiResponse<T> {
 
-    private int httpStatus;
+    private String Code;
     private String message;
     private T data;
     private String path;
@@ -14,20 +14,20 @@ public class ApiResponse<T> {
         this.timestamp = OffsetDateTime.now();
     }
 
-    public ApiResponse(int httpStatus, String message, T data, String path) {
-        this.httpStatus = httpStatus;
+    public ApiResponse(String Code, String message, T data, String path) {
+        this.Code = Code;
         this.message = message;
         this.data = data;
         this.path = path;
         this.timestamp = OffsetDateTime.now();
     }
 
-    public static <T> ApiResponse<T> of(int status, String message, T data, String path) {
+    public static <T> ApiResponse<T> of(String status, String message, T data, String path) {
         return new ApiResponse<>(status, message, data, path);
     }
 
-    public int getHttpStatus() { return httpStatus; }
-    public void setHttpStatus(int httpStatus) { this.httpStatus = httpStatus; }
+    public String getCode() { return Code; }
+    public void setCode(String code) { this.Code = code; }
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
     public T getData() { return data; }

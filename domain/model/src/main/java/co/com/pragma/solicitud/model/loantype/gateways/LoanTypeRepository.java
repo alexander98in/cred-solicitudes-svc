@@ -7,7 +7,7 @@ import reactor.core.publisher.Mono;
 import java.util.UUID;
 
 public interface LoanTypeRepository {
-    Mono<LoanType> findLoanTypeById(UUID id);
+    Mono<LoanType> getLoanTypeById(UUID id);
     Flux<LoanType> findLoanTypeAll();
     Mono<Boolean> existsLoanTypeById(UUID id);
 }

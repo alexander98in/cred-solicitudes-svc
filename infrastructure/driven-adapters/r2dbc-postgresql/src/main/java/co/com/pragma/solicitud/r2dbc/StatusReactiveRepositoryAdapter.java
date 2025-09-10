@@ -17,7 +17,7 @@ public class StatusReactiveRepositoryAdapter extends ReactiveAdapterOperations<S
     }
 
     @Override
-    public Mono<Status> findStatusById(UUID id) {
+    public Mono<Status> getStatusById(UUID id) {
         return repository.findById(id)
             .map(this::toEntity);
     }
@@ -25,5 +25,11 @@ public class StatusReactiveRepositoryAdapter extends ReactiveAdapterOperations<S
     @Override
     public Mono<Boolean> existsStatusById(UUID id) {
         return repository.existsById(id);
+    }
+
+    @Override
+    public Mono<Status> getStatusByDescription(String description) {
+        return repository.findByDescription(description)
+                .map(this::toEntity);
     }
 }

@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public interface ApplicationUseCase {
 
-    Mono<Application> createApplication(Application application, String documentId);
+    Mono<Application> createApplication(Application application, String email);
     Flux<Application> getAllApplications();
     Mono<Application> getApplicationById(UUID id);
 

@@ -17,7 +17,6 @@ public class ErrorResponse<T> {
 
     private String errorCode;
     private String message;
-    private Integer httpStatus;
     private String url;
     private String method;
     private T data;

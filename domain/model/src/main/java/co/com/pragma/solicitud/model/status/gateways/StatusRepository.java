@@ -7,6 +7,7 @@ import java.util.UUID;
 
 public interface StatusRepository {
 
-    Mono<Status> findStatusById(UUID id);
+    Mono<Status> getStatusById(UUID id);
     Mono<Boolean> existsStatusById(UUID id);
+    Mono<Status> getStatusByDescription(String description);
 }

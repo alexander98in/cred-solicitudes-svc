@@ -13,22 +13,22 @@ public final class ResponseUtil {
     private ResponseUtil() {}
 
     public static <T> Mono<ServerResponse> created(ServerRequest req, URI location, String message, T body) {
-        var api = ApiResponse.of(HttpStatus.CREATED.value(), message, body, req.path());
+        var api = ApiResponse.of(SuccessCode.CREATED.getCode(), message, body, req.path());
         return ServerResponse.created(location)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(api);
     }
 
     public static <T> Mono<ServerResponse> ok(ServerRequest req, String message, T body) {
-        var api = ApiResponse.of(HttpStatus.OK.value(), message, body, req.path());
+        var api = ApiResponse.of(SuccessCode.OPERATION_COMPLETED.getCode(), message, body, req.path());
         return ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(api);
     }
 
-    public static Mono<ServerResponse> error(ServerRequest req, HttpStatus status, String message, Object details) {
-        var api = ApiResponse.of(status.value(), message, details, req.path());
-        return ServerResponse.status(status)
+    public static Mono<ServerResponse> error(ServerRequest req, String status, HttpStatus httpStatus, String message, Object details) {
+        var api = ApiResponse.of(status, message, details, req.path());
+        return ServerResponse.status(httpStatus)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(api);
     }

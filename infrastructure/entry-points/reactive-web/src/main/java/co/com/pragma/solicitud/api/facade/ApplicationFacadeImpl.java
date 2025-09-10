@@ -3,6 +3,7 @@ package co.com.pragma.solicitud.api.facade;
 import co.com.pragma.solicitud.api.dto.request.ApplicationRequestDTO;
 import co.com.pragma.solicitud.api.dto.response.ApplicationResponseDTO;
 import co.com.pragma.solicitud.api.mapper.ApplicationDTOMapper;
+import co.com.pragma.solicitud.model.auth.gateways.TokenService;
 import co.com.pragma.solicitud.usecase.application.ApplicationUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -16,6 +17,7 @@ import reactor.core.publisher.Mono;
 public class ApplicationFacadeImpl implements ApplicationFacade {
 
     private final ApplicationUseCase applicationUseCase;
+    private final TokenService tokenService;
     private final ApplicationDTOMapper mapper;
     private final ReactiveTransactionManager txManager;
 
@@ -27,13 +29,14 @@ public class ApplicationFacadeImpl implements ApplicationFacade {
 
     @Override
     public Mono<ApplicationResponseDTO> registerApplication(ApplicationRequestDTO dto) {
-        return Mono.defer(() -> {
-            var domain = mapper.toDomain(dto, null);
-            return transactional(
-                    applicationUseCase.createApplication(domain, dto.documentId())
-                            .map(mapper::toResponse)
-            );
-        });
+        return tokenService.getEmailFromContext()
+                .flatMap(email ->{
+                    var domain = mapper.toDomain(dto);
+                    return transactional(
+                            applicationUseCase.createApplication(domain, email)
+                                    .map(mapper::toResponse)
+                    );
+                });
     }
 
     @Override

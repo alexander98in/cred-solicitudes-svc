@@ -27,15 +27,14 @@ public class ApplicationHandler {
     private final ApplicationFacade applicationFacade;
     private final SmartValidator validator;
 
-    // Registrar una nueva solicitud
     public Mono<ServerResponse> registerApplication(ServerRequest req) {
         return Mono.defer(() -> {
             String requestId = MDC.get(MDC_KEY);  // Obtener el requestId desde MDC
             log.info("[{}] POST /api/v1/solicitudes - procesando registro", requestId);
 
             return req.bodyToMono(ApplicationRequestDTO.class)
-                    .doOnNext(body -> log.debug("[{}] payload recibido (masked): email={}, monto={}",
-                            requestId, maskEmail(body.email()), body.amount()))
+                    .doOnNext(body -> log.debug("[{}] payload recibido (masked): monto={}",
+                            requestId, body.amount()))
                     .flatMap(this::validate)
                     .flatMap(applicationFacade::registerApplication)
                     .doOnSuccess(resp -> log.info("[{}] solicitud creada id={}", requestId, resp.idApplication()))
@@ -72,11 +71,5 @@ public class ApplicationHandler {
             throw new RequestValidationException("Datos inválidos en la solicitud", map);
         }
         return Mono.just(dto);
-    }
-
-    private static String maskEmail(String email) {
-        if (email == null || !email.contains("@")) return "N/A";
-        var at = email.indexOf('@');
-        return (at <= 2 ? "***" : email.substring(0, 2) + "***") + email.substring(at);
     }
 }

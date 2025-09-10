@@ -41,7 +41,7 @@ public class ApiExceptionHandler implements ErrorWebExceptionHandler {
         }
 
         var pair = toStatusAndBody(exchange, ex);
-        var status = pair.status();
+        var status = pair.httpStatus();
         var body = pair.body();
 
         // --- LOG: una línea compacta por error ---
@@ -70,55 +70,80 @@ public class ApiExceptionHandler implements ErrorWebExceptionHandler {
             return resp.writeWith(Mono.just(buffer));
         } catch (Exception writeErr) {
             // fallback mínimo si falla la serialización
-            var fallback = ("{\"httpStatus\":" + status.value() + ",\"message\":\"Unexpected error\"}")
+            var fallback = ("{\"status\":" + status.value() + ",\"message\":\"Unexpected error\"}")
                     .getBytes(StandardCharsets.UTF_8);
             return resp.writeWith(Mono.just(resp.bufferFactory().wrap(fallback)));
         }
     }
 
-    private record StatusAndBody(HttpStatus status, ApiResponse<?> body) {}
+    private record StatusAndBody(HttpStatus httpStatus, ApiResponse<?> body) {}
 
     private StatusAndBody toStatusAndBody(ServerWebExchange ex, Throwable error) {
-        HttpStatus status;
-        String code = ErrorCode.GENERIC.getCode();
+        String status;
+        HttpStatus httpStatus;
+        String code = ErrorCode.UNKNOWN_ERROR.getMessage();
         String message = error.getMessage();
+        String messageGeneral = ErrorCode.UNKNOWN_ERROR.getMessage();
         Object details = null;
 
         if (error instanceof RequestValidationException ve) {
-            status = HttpStatus.BAD_REQUEST;
+            httpStatus = HttpStatus.BAD_REQUEST;
+            status = ErrorCode.VALIDATION.getCode();
+            messageGeneral = ErrorCode.VALIDATION.getMessage();
             code = ErrorCode.VALIDATION.getCode();
             details = ve.getErrors();
             message = (message != null) ? message : "Datos inválidos";
         } else if (error instanceof ResourceAlreadyExistsException) {
-            status = HttpStatus.CONFLICT;
-            code = ErrorCode.CONFLICT.getCode();
+            httpStatus = HttpStatus.CONFLICT;
+            status = ErrorCode.CONFLICT.getCode();
+            messageGeneral = ErrorCode.CONFLICT.getMessage();
+            code = ((ResourceAlreadyExistsException) error).getCode();
         } else if (error instanceof ResourceNotFoundException) {
-            status = HttpStatus.NOT_FOUND;
-            code = ErrorCode.NOT_FOUND.getCode();
+            status = ErrorCode.NOT_FOUND.getCode();
+            httpStatus = HttpStatus.NOT_FOUND;
+            messageGeneral = ErrorCode.NOT_FOUND.getMessage();
+            code = ((ResourceNotFoundException) error).getCode();
         } else if (error instanceof BusinessRuleViolationException) {
-            status = HttpStatus.UNPROCESSABLE_ENTITY;
-            code = ErrorCode.BUSINESS_RULE.getCode();
+            httpStatus = HttpStatus.UNPROCESSABLE_ENTITY;
+            status = ErrorCode.BUSINESS_RULE.getCode();
+            messageGeneral = ErrorCode.BUSINESS_RULE.getMessage();
+            code = ((BusinessRuleViolationException) error).getCode();
         } else if (error instanceof IllegalArgumentException) {
-            status = HttpStatus.BAD_REQUEST;
+            httpStatus = HttpStatus.BAD_REQUEST;
+            status = ErrorCode.VALIDATION.getCode();
+            messageGeneral = ErrorCode.VALIDATION.getMessage();
             code = ErrorCode.VALIDATION.getCode();
         } else if (error instanceof IllegalStateException || error instanceof DuplicateKeyException) {
-            status = HttpStatus.CONFLICT;
+            httpStatus = HttpStatus.CONFLICT;
+            status = ErrorCode.CONFLICT.getCode();
+            messageGeneral = ErrorCode.CONFLICT.getMessage();
             code = ErrorCode.CONFLICT.getCode();
         } else if (error instanceof NoSuchElementException
                 || error instanceof ResponseStatusException rse && rse.getStatusCode().is4xxClientError()) {
-            status = HttpStatus.NOT_FOUND;
+            httpStatus = HttpStatus.NOT_FOUND;
+            status = ErrorCode.NOT_FOUND.getCode();
+            messageGeneral = ErrorCode.NOT_FOUND.getMessage();
             code = ErrorCode.NOT_FOUND.getCode();
             if (error instanceof ResponseStatusException rse2) message = rse2.getReason();
         } else if (error instanceof ServerWebInputException || error instanceof DecodingException) {
-            status = HttpStatus.BAD_REQUEST;
+            httpStatus = HttpStatus.BAD_REQUEST;
+            status = ErrorCode.PAYLOAD_INVALID.getCode();
+            messageGeneral = ErrorCode.PAYLOAD_INVALID.getMessage();
             code = ErrorCode.PAYLOAD_INVALID.getCode();
             if (message == null) message = "JSON de entrada inválido";
         } else {
             if (error instanceof BadSqlGrammarException) {
-                status = HttpStatus.INTERNAL_SERVER_ERROR;
-                message = "Error de acceso a datos";
+                httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+                status = ErrorCode.DATA_ACCESS.getCode();
+                messageGeneral = ErrorCode.DATA_ACCESS.getMessage();
+                message = ErrorCode.DATA_ACCESS.getMessage();
+                code = ErrorCode.DATA_ACCESS.getCode();
             } else {
-                status = HttpStatus.INTERNAL_SERVER_ERROR;
+                httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+                status = ErrorCode.SERVER_ERROR.getCode();
+                messageGeneral = ErrorCode.SERVER_ERROR.getMessage();
+                message = ErrorCode.SERVER_ERROR.getMessage();
+                code = ErrorCode.SERVER_ERROR.getCode();
                 if (message == null) message = "Error interno del servidor";
             }
         }
@@ -127,19 +152,18 @@ public class ApiExceptionHandler implements ErrorWebExceptionHandler {
         var err = ErrorResponse.builder()
                 .errorCode(code)
                 .message(message)
-                .httpStatus(status.value())
                 .url(req.getURI().getPath())
                 .method(req.getMethod() != null ? req.getMethod().name() : null)
                 .data(details)
                 .build();
-
+        //status.is4xxClientError() ? "Solicitud inválida" : "Error interno"
         var api = ApiResponse.of(
-                status.value(),
-                (status.is4xxClientError() ? "Solicitud inválida" : "Error interno"),
+                status,
+                messageGeneral,
                 err,
                 req.getURI().getPath()
         );
-
-        return new StatusAndBody(status, api);
+        //return new StatusAndBody(status, api);
+        return new StatusAndBody(httpStatus, api);
     }
 }

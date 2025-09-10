@@ -23,9 +23,9 @@ public interface ApplicationDTOMapper {
     @Mapping(target = "idApplication", ignore = true)
     @Mapping(target = "amount", source = "dto.amount")
     @Mapping(target = "term", source = "dto.term")
-    @Mapping(target = "email", source = "dto.email")
-    @Mapping(target = "idStatus", source = "dto.idStatus", qualifiedByName = "strToUuid")
+    @Mapping(target = "email", ignore = true)
+    @Mapping(target = "idStatus", ignore = true)
     @Mapping(target = "idLoanType", source = "dto.idLoanType", qualifiedByName = "strToUuid")
-    @Mapping(target = "idUser", source = "userId")
-    Application toDomain(ApplicationRequestDTO dto, UUID userId);
+    @Mapping(target = "idUser", ignore = true)
+    Application toDomain(ApplicationRequestDTO dto);
 }

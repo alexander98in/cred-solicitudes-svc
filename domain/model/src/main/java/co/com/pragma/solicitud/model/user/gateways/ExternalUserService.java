@@ -4,5 +4,5 @@ import co.com.pragma.solicitud.model.user.RemoteUser;
 import reactor.core.publisher.Mono;
 
 public interface ExternalUserService {
-    Mono<RemoteUser> getUserByDocumentId(String documentId);
+    Mono<RemoteUser> getUserByEmail(String email);
 }

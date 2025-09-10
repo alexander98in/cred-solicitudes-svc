@@ -18,9 +18,9 @@ public class ExternalUserServiceImpl implements ExternalUserService {
     private final WebClient userServiceWebClient;
 
     @Override
-    public Mono<RemoteUser> getUserByDocumentId(String documentId) {
+    public Mono<RemoteUser> getUserByEmail(String email) {
         return userServiceWebClient.get()
-                .uri("/api/v1/usuarios/documento/{documentId}", documentId)
+                .uri("/api/v1/usuarios/email/{email}", email)
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<ApiResponse<RemoteUser>>() {})
                 .flatMap(api -> {
