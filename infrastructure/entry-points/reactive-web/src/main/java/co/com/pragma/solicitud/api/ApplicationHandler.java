@@ -2,6 +2,7 @@ package co.com.pragma.solicitud.api;
 
 import co.com.pragma.solicitud.api.common.ResponseUtil;
 import co.com.pragma.solicitud.api.dto.request.ApplicationRequestDTO;
+import co.com.pragma.solicitud.api.dto.request.ChangeStatusRequestDTO;
 import co.com.pragma.solicitud.api.exceptions.RequestValidationException;
 import co.com.pragma.solicitud.api.facade.ApplicationFacade;
 import co.com.pragma.solicitud.model.application.ApplicationFilter;
@@ -87,6 +88,22 @@ public class ApplicationHandler {
                     .flatMap(paginatedApplications -> ResponseUtil.ok(request, "Listado de solicitudes con filtros", paginatedApplications));
         });
 
+    }
+
+    public Mono<ServerResponse> changeApplicationStatus(ServerRequest req) {
+        return Mono.defer(() -> {
+            String requestId = MDC.get(MDC_KEY);
+            log.info("[{}] PUT /api/v1/solicitudes - procesando cambio de estado", requestId);
+            String idApplication = (String) req.pathVariable("idApplication");
+            String targetStatus = req.queryParam("targetStatus").orElse(null);
+            if (targetStatus == null || targetStatus.isBlank()) {
+                return ResponseUtil.badRequest(req, "El parámetro 'targetStatus' es obligatorio", null);
+            }
+            return applicationFacade.changeApplicationStatus(idApplication, targetStatus)
+                .doOnSuccess(resp -> log.info("[{}] solicitud actualizada id={}, nuevo estado={}", requestId, resp.id(), targetStatus))
+                .doOnError(e -> log.error("[{}] error en changeApplicationStatus: {}", requestId, e.toString()))
+                .flatMap(resp -> ResponseUtil.ok(req, "Estado actualizado exitosamente", resp));
+        });
     }
 
     private Mono<ApplicationRequestDTO> validate(ApplicationRequestDTO dto) {

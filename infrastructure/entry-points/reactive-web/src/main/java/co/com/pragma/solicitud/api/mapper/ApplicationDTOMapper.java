@@ -2,7 +2,9 @@ package co.com.pragma.solicitud.api.mapper;
 
 import co.com.pragma.solicitud.api.dto.request.ApplicationRequestDTO;
 import co.com.pragma.solicitud.api.dto.response.ApplicationResponseDTO;
+import co.com.pragma.solicitud.api.dto.response.ApplicationUpdateResponseDTO;
 import co.com.pragma.solicitud.model.application.Application;
+import co.com.pragma.solicitud.model.application.ApplicationDetails;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -13,6 +15,8 @@ import java.util.UUID;
 public interface ApplicationDTOMapper {
 
     ApplicationResponseDTO toResponse(Application app);
+
+    ApplicationUpdateResponseDTO toUpdateResponse(ApplicationDetails app);
 
     @Named("strToUuid")
     static UUID strToUuid(String v) {

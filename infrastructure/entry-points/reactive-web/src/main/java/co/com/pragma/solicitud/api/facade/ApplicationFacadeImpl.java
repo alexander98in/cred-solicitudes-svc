@@ -2,6 +2,7 @@ package co.com.pragma.solicitud.api.facade;
 
 import co.com.pragma.solicitud.api.dto.request.ApplicationRequestDTO;
 import co.com.pragma.solicitud.api.dto.response.ApplicationResponseDTO;
+import co.com.pragma.solicitud.api.dto.response.ApplicationUpdateResponseDTO;
 import co.com.pragma.solicitud.api.mapper.ApplicationDTOMapper;
 import co.com.pragma.solicitud.model.application.ApplicationFilter;
 import co.com.pragma.solicitud.model.application.PaginatedApplications;
@@ -58,6 +59,14 @@ public class ApplicationFacadeImpl implements ApplicationFacade {
     public Mono<PaginatedApplications> getApplicationsByPage(ApplicationFilter filter) {
         return Mono.defer(() ->
                 applicationUseCase.getApplicationsByPage(filter)
+        );
+    }
+
+    @Override
+    public Mono<ApplicationUpdateResponseDTO> changeApplicationStatus(String idApplication, String targetStatus) {
+        return transactional(
+                applicationUseCase.changeApplicationStatus(java.util.UUID.fromString(idApplication), targetStatus)
+                        .map(mapper::toUpdateResponse)
         );
     }
 }

@@ -54,6 +54,8 @@ public class SecurityConfig {
                         .pathMatchers(HttpMethod.GET, "/api/v1/solicitudes/listar").hasAnyAuthority("ADMIN","ASESOR")
                         // (ejemplo) Obtener una solicitud por id: ADMIN, ASESOR, CLIENTE
                         .pathMatchers(HttpMethod.GET, "/api/v1/solicitudes/lista-paginada").hasAnyAuthority("ADMIN", "ASESOR")
+                        // Cambiar estado de solicitud: ADMIN y ASESOR
+                        .pathMatchers(HttpMethod.PUT, "/api/v1/solicitudes/**").hasAnyAuthority("ADMIN","ASESOR")
 
                         .anyExchange().authenticated()
                 )

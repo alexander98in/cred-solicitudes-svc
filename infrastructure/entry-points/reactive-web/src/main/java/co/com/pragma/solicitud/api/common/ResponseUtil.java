@@ -32,4 +32,8 @@ public final class ResponseUtil {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(api);
     }
+
+    public static Mono<ServerResponse> badRequest(ServerRequest req, String message, Object details) {
+        return error(req, ErrorCode.BAD_REQUEST.getCode(), HttpStatus.BAD_REQUEST, message, details);
+    }
 }

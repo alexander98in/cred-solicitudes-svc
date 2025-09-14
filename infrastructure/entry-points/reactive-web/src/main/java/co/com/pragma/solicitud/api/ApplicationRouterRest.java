@@ -8,6 +8,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import static org.springframework.web.reactive.function.server.RouterFunctions.route;
 import static org.springframework.web.reactive.function.server.RequestPredicates.POST;
 import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
+import static org.springframework.web.reactive.function.server.RequestPredicates.PUT;
 
 @Configuration
 public class ApplicationRouterRest {
@@ -16,6 +17,7 @@ public class ApplicationRouterRest {
     public RouterFunction<ServerResponse> applicationRoutes(ApplicationHandler handler) {
         return route(POST("/api/v1/solicitudes"), handler::registerApplication)
                 .andRoute(GET("/api/v1/solicitudes/listar"), handler::listApplications)
-                .andRoute(GET("/api/v1/solicitudes/lista-paginada"), handler::listApplicationsPageable);
+                .andRoute(GET("/api/v1/solicitudes/lista-paginada"), handler::listApplicationsPageable)
+                .andRoute(PUT("/api/v1/solicitudes/{idApplication}"), handler::changeApplicationStatus);
     }
 }

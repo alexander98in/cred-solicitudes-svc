@@ -17,7 +17,8 @@ public enum ErrorCode {
     UNAUTHORIZED_ACTION("CRED-7001", "El usuario no tiene permisos para realizar esta acción"),
     SERVER_ERROR("CRED-8000", "Error interno del servidor"),
     UNKNOWN_ERROR("CRED-9000", "Ocurrió un error desconocido"),
-    DATA_ACCESS("CRED-10000", "Error de acceso a datos");
+    DATA_ACCESS("CRED-10000", "Error de acceso a datos"),
+    BAD_REQUEST("CRED-11000", "Solicitud incorrecta");
 
     private final String code;
     private final String message;

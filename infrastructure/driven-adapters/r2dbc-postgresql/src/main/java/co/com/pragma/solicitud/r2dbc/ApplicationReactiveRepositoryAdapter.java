@@ -35,4 +35,9 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
         return repository.findById(id)
                 .map(this::toEntity);
     }
+
+    @Override
+    public Mono<Integer> updateStatus(UUID idApp, UUID currentStatus, UUID newStatus) {
+        return repository.updateStatus(idApp, currentStatus, newStatus);
+    }
 }

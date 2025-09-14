@@ -1,6 +1,7 @@
 package co.com.pragma.solicitud.usecase.application;
 
 import co.com.pragma.solicitud.model.application.Application;
+import co.com.pragma.solicitud.model.application.ApplicationDetails;
 import co.com.pragma.solicitud.model.application.ApplicationFilter;
 import co.com.pragma.solicitud.model.application.PaginatedApplications;
 import co.com.pragma.solicitud.model.application.gateways.ApplicationCustomRepository;
@@ -73,9 +74,7 @@ public class ApplicationUseCaseImpl implements ApplicationUseCase{
                     application.setEmail(remoteUser.email());
                     return applicationRepository.saveApplication(application);
                 })
-                .onErrorMap(e -> {
-                    return e;
-                });
+                .onErrorMap(e -> e);
     }
 
     @Override
@@ -106,4 +105,80 @@ public class ApplicationUseCaseImpl implements ApplicationUseCase{
                     return paginated;
                 });
     }
+
+    /**
+     * Cambia el estado de una solicitud a "Aprobado" o "Rechazado" solo si está en estado "Pendiente de revisión".
+     * @param idApplication ID de la solicitud
+     * @param targetStatus Nombre del estado destino ("Aprobado" o "Rechazado")
+     * @return Mono<ApplicationDetails> con la solicitud actualizada
+     */
+    @Override
+    public Mono<ApplicationDetails> changeApplicationStatus(UUID idApplication, String targetStatus) {
+        final String PENDING_STATUS = "Pendiente de revisión";
+        final String APPROVED_STATUS = "Aprobado";
+        final String REJECTED_STATUS = "Rechazado";
+
+        return Mono.justOrEmpty(targetStatus)
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .switchIfEmpty(Mono.error(new BusinessRuleViolationException("CRED-6005", "El estado destino es obligatorio")))
+                .filter(s -> s.equalsIgnoreCase(APPROVED_STATUS) || s.equalsIgnoreCase(REJECTED_STATUS))
+                .switchIfEmpty(Mono.error(new BusinessRuleViolationException("CRED-6006", "Solo se permite actualizar a los estados 'Aprobado' o 'Rechazado'")))
+                .flatMap(normalizedStatus -> {
+                    Mono<Application> appMono = applicationRepository.findApplicationById(idApplication)
+                            .switchIfEmpty(Mono.error(new ResourceNotFoundException("No existe la solicitud con id: " + idApplication)));
+
+                    Mono<UUID> pendingIdMono = statusRepository.getStatusByDescription(PENDING_STATUS)
+                            .switchIfEmpty(Mono.error(new ResourceNotFoundException(
+                                    ErrorCodeDomain.PENDING_STATUS_NOT_FOUND.getCode(),
+                                    String.format(ErrorCodeDomain.PENDING_STATUS_NOT_FOUND.getMessage())
+                            )))
+                            .map(Status::getIdStatus);
+
+                    Mono<UUID> targetIdStatusMono = statusRepository
+                            .getStatusByDescription(normalizedStatus.equalsIgnoreCase(APPROVED_STATUS) ? APPROVED_STATUS : REJECTED_STATUS)
+                            .switchIfEmpty(Mono.error(new ResourceNotFoundException(
+                                    "CRED-4004",
+                                    "Estado detino '" + normalizedStatus + "' no encontrado"
+                            )))
+                            .map(Status::getIdStatus);
+
+                    return Mono.zip(appMono, pendingIdMono, targetIdStatusMono)
+                            .flatMap(tuple -> {
+                                Application app = tuple.getT1();
+                                UUID pendingId = tuple.getT2();
+                                UUID targetId = tuple.getT3();
+
+                                if(!pendingId.equals(app.getIdStatus())) {
+                                    return Mono.error(new BusinessRuleViolationException("CRED-6007", "Solo se pueden actualizar solicitudes en estado 'Pendiente de revisión'"));
+                                }
+                                return applicationRepository
+                                        .updateStatus(app.getIdApplication(), pendingId, targetId)
+                                        .flatMap(rows -> {
+                                            if(rows == 0) {
+                                                return Mono.error(new BusinessRuleViolationException(
+                                                        "CRED-6004",
+                                                        "La solicitud cambió de estado por otro proceso, intente de nuevo"
+                                                ));
+                                            }
+
+                                            return applicationRepository.findApplicationById(app.getIdApplication())
+                                                    .switchIfEmpty(Mono.error(new ResourceNotFoundException("No existe la solicitud con id: " + app.getIdApplication())))
+                                                    .flatMap(updateApp -> {
+                                                        UUID newStatusId = updateApp.getIdStatus();
+                                                        return statusRepository.getStatusById(newStatusId)
+                                                                .defaultIfEmpty(new Status(newStatusId, "Desconocido"))
+                                                                .map(status -> ApplicationDetails.builder()
+                                                                        .id(updateApp.getIdApplication())
+                                                                        .amount(updateApp.getAmount())
+                                                                        .term(updateApp.getTerm())
+                                                                        .email(updateApp.getEmail())
+                                                                        .status(status.getDescription())
+                                                                        .build());
+                                                    });
+                                        });
+                            });
+                });
+    }
+
 }
