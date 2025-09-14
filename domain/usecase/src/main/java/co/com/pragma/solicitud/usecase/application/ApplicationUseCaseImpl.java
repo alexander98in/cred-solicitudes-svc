@@ -4,8 +4,10 @@ import co.com.pragma.solicitud.model.application.Application;
 import co.com.pragma.solicitud.model.application.ApplicationDetails;
 import co.com.pragma.solicitud.model.application.ApplicationFilter;
 import co.com.pragma.solicitud.model.application.PaginatedApplications;
+import co.com.pragma.solicitud.model.application.events.ApplicationStatusChangedEvent;
 import co.com.pragma.solicitud.model.application.gateways.ApplicationCustomRepository;
 import co.com.pragma.solicitud.model.application.gateways.ApplicationRepository;
+import co.com.pragma.solicitud.model.application.gateways.NotificationQueue;
 import co.com.pragma.solicitud.model.loantype.LoanType;
 import co.com.pragma.solicitud.model.loantype.gateways.LoanTypeRepository;
 import co.com.pragma.solicitud.model.status.Status;
@@ -31,6 +33,7 @@ public class ApplicationUseCaseImpl implements ApplicationUseCase{
     private final StatusRepository statusRepository;
     private final LoanTypeRepository loanTypeRepository;
     private final ApplicationCustomRepository applicationCustomRepository;
+    private final NotificationQueue notificationQueue;
 
     @Override
     public Mono<Application> createApplication(Application application, String email) {
@@ -175,6 +178,18 @@ public class ApplicationUseCaseImpl implements ApplicationUseCase{
                                                                         .email(updateApp.getEmail())
                                                                         .status(status.getDescription())
                                                                         .build());
+                                                    })
+                                                    .flatMap(applicationDetails -> {
+                                                        var evt = ApplicationStatusChangedEvent.builder()
+                                                                .idApplication(applicationDetails.getId())
+                                                                .newStatus(applicationDetails.getStatus())
+                                                                .email(applicationDetails.getEmail())
+                                                                .amount(applicationDetails.getAmount())
+                                                                .term(BigDecimal.valueOf(applicationDetails.getTerm()))
+                                                                .occurredAt(java.time.OffsetDateTime.now())
+                                                                .build();
+                                                        return notificationQueue.publishStatusChangedEvent(evt)
+                                                                .thenReturn(applicationDetails);
                                                     });
                                         });
                             });

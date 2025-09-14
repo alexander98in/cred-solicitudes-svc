@@ -53,3 +53,4 @@ security:
   jwt:
     secret: "990d0e64f17121df3b779c857ef93c85fc43842daf91f43c21bfcaf5ac2a8140"
     ttl-seconds: 3600
+
