@@ -10,11 +10,14 @@ import co.com.pragma.solicitud.model.application.gateways.ApplicationRepository;
 import co.com.pragma.solicitud.model.application.gateways.NotificationQueue;
 import co.com.pragma.solicitud.model.loantype.LoanType;
 import co.com.pragma.solicitud.model.loantype.gateways.LoanTypeRepository;
+import co.com.pragma.solicitud.model.outbox.OutboxEvent;
+import co.com.pragma.solicitud.model.outbox.gateways.OutboxRepository;
 import co.com.pragma.solicitud.model.status.Status;
 import co.com.pragma.solicitud.model.status.gateways.StatusRepository;
 import co.com.pragma.solicitud.model.user.RemoteUser;
 import co.com.pragma.solicitud.model.user.gateways.ExternalUserService;
 import co.com.pragma.solicitud.usecase.exceptions.BusinessRuleViolationException;
+import co.com.pragma.solicitud.usecase.utils.ApplicationStatus;
 import co.com.pragma.solicitud.usecase.utils.ErrorCodeDomain;
 import co.com.pragma.solicitud.usecase.exceptions.ResourceNotFoundException;
 import co.com.pragma.solicitud.usecase.utils.LoanMath;
@@ -33,7 +36,7 @@ public class ApplicationUseCaseImpl implements ApplicationUseCase{
     private final StatusRepository statusRepository;
     private final LoanTypeRepository loanTypeRepository;
     private final ApplicationCustomRepository applicationCustomRepository;
-    private final NotificationQueue notificationQueue;
+    private final OutboxRepository outboxRepository;
 
     @Override
     public Mono<Application> createApplication(Application application, String email) {
@@ -88,7 +91,10 @@ public class ApplicationUseCaseImpl implements ApplicationUseCase{
     @Override
     public Mono<Application> getApplicationById(UUID id) {
         return applicationRepository.findApplicationById(id)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("No existe la solicitud con id: " + id)));
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException(
+                        ErrorCodeDomain.APPLICATION_NOT_FOUND.getCode(),
+                        String.format(ErrorCodeDomain.APPLICATION_NOT_FOUND.getMessage(), id)
+                )));
     }
 
     @Override
@@ -117,21 +123,20 @@ public class ApplicationUseCaseImpl implements ApplicationUseCase{
      */
     @Override
     public Mono<ApplicationDetails> changeApplicationStatus(UUID idApplication, String targetStatus) {
-        final String PENDING_STATUS = "Pendiente de revisión";
-        final String APPROVED_STATUS = "Aprobado";
-        final String REJECTED_STATUS = "Rechazado";
-
         return Mono.justOrEmpty(targetStatus)
                 .map(String::trim)
                 .filter(s -> !s.isBlank())
-                .switchIfEmpty(Mono.error(new BusinessRuleViolationException("CRED-6005", "El estado destino es obligatorio")))
-                .filter(s -> s.equalsIgnoreCase(APPROVED_STATUS) || s.equalsIgnoreCase(REJECTED_STATUS))
-                .switchIfEmpty(Mono.error(new BusinessRuleViolationException("CRED-6006", "Solo se permite actualizar a los estados 'Aprobado' o 'Rechazado'")))
+                .switchIfEmpty(Mono.error(new BusinessRuleViolationException(ErrorCodeDomain.STATUS_OBLIGATORY.getCode(), ErrorCodeDomain.STATUS_OBLIGATORY.getMessage())))
+                .filter(s -> s.equalsIgnoreCase(ApplicationStatus.APPROVED.getStatus()) || s.equalsIgnoreCase(ApplicationStatus.REJECTED.getStatus()))
+                .switchIfEmpty(Mono.error(new BusinessRuleViolationException(ErrorCodeDomain.STATUS_NOT_VALID.getCode(), ErrorCodeDomain.STATUS_NOT_VALID.getMessage())))
                 .flatMap(normalizedStatus -> {
                     Mono<Application> appMono = applicationRepository.findApplicationById(idApplication)
-                            .switchIfEmpty(Mono.error(new ResourceNotFoundException("No existe la solicitud con id: " + idApplication)));
+                            .switchIfEmpty(Mono.error(new ResourceNotFoundException(
+                                    ErrorCodeDomain.APPLICATION_NOT_FOUND.getCode(),
+                                    String.format(ErrorCodeDomain.APPLICATION_NOT_FOUND.getMessage(), idApplication)
+                            )));
 
-                    Mono<UUID> pendingIdMono = statusRepository.getStatusByDescription(PENDING_STATUS)
+                    Mono<UUID> pendingIdMono = statusRepository.getStatusByDescription(ApplicationStatus.PENDING.getStatus())
                             .switchIfEmpty(Mono.error(new ResourceNotFoundException(
                                     ErrorCodeDomain.PENDING_STATUS_NOT_FOUND.getCode(),
                                     String.format(ErrorCodeDomain.PENDING_STATUS_NOT_FOUND.getMessage())
@@ -139,10 +144,10 @@ public class ApplicationUseCaseImpl implements ApplicationUseCase{
                             .map(Status::getIdStatus);
 
                     Mono<UUID> targetIdStatusMono = statusRepository
-                            .getStatusByDescription(normalizedStatus.equalsIgnoreCase(APPROVED_STATUS) ? APPROVED_STATUS : REJECTED_STATUS)
+                            .getStatusByDescription(normalizedStatus.equalsIgnoreCase(ApplicationStatus.APPROVED.getStatus()) ? ApplicationStatus.APPROVED.getStatus() : ApplicationStatus.REJECTED.getStatus())
                             .switchIfEmpty(Mono.error(new ResourceNotFoundException(
-                                    "CRED-4004",
-                                    "Estado detino '" + normalizedStatus + "' no encontrado"
+                                    ErrorCodeDomain.STATUS_NOT_FOUND.getCode(),
+                                    String.format(ErrorCodeDomain.STATUS_NOT_FOUND.getMessage(), normalizedStatus)
                             )))
                             .map(Status::getIdStatus);
 
@@ -153,20 +158,26 @@ public class ApplicationUseCaseImpl implements ApplicationUseCase{
                                 UUID targetId = tuple.getT3();
 
                                 if(!pendingId.equals(app.getIdStatus())) {
-                                    return Mono.error(new BusinessRuleViolationException("CRED-6007", "Solo se pueden actualizar solicitudes en estado 'Pendiente de revisión'"));
+                                    return Mono.error(new BusinessRuleViolationException(
+                                            ErrorCodeDomain.APPLICATION_CHANGE_STATUS.getCode(),
+                                            ErrorCodeDomain.APPLICATION_CHANGE_STATUS.getMessage()
+                                    ));
                                 }
                                 return applicationRepository
                                         .updateStatus(app.getIdApplication(), pendingId, targetId)
                                         .flatMap(rows -> {
                                             if(rows == 0) {
                                                 return Mono.error(new BusinessRuleViolationException(
-                                                        "CRED-6004",
-                                                        "La solicitud cambió de estado por otro proceso, intente de nuevo"
+                                                        ErrorCodeDomain.APPLICATION_CONFLICT_CHANGE_STATUS.getCode(),
+                                                        ErrorCodeDomain.APPLICATION_CONFLICT_CHANGE_STATUS.getMessage()
                                                 ));
                                             }
 
                                             return applicationRepository.findApplicationById(app.getIdApplication())
-                                                    .switchIfEmpty(Mono.error(new ResourceNotFoundException("No existe la solicitud con id: " + app.getIdApplication())))
+                                                    .switchIfEmpty(Mono.error(new ResourceNotFoundException(
+                                                            ErrorCodeDomain.APPLICATION_NOT_FOUND.getCode(),
+                                                            String.format(ErrorCodeDomain.APPLICATION_NOT_FOUND.getMessage(), idApplication)
+                                                    )))
                                                     .flatMap(updateApp -> {
                                                         UUID newStatusId = updateApp.getIdStatus();
                                                         return statusRepository.getStatusById(newStatusId)
@@ -188,7 +199,17 @@ public class ApplicationUseCaseImpl implements ApplicationUseCase{
                                                                 .term(BigDecimal.valueOf(applicationDetails.getTerm()))
                                                                 .occurredAt(java.time.OffsetDateTime.now())
                                                                 .build();
-                                                        return notificationQueue.publishStatusChangedEvent(evt)
+
+                                                        var outbox = OutboxEvent.builder()
+                                                                .aggregateId(evt.idApplication())
+                                                                .eventType("ApplicationStatusChangedEvent")
+                                                                .payload(evt)
+                                                                .occurredAt(java.time.OffsetDateTime.now())
+                                                                .processed(false)
+                                                                .retries(0)
+                                                                .build();
+
+                                                        return outboxRepository.save(outbox)
                                                                 .thenReturn(applicationDetails);
                                                     });
                                         });

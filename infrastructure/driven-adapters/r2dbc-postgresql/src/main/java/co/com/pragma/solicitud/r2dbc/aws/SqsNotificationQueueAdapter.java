@@ -38,7 +38,7 @@ public class SqsNotificationQueueAdapter implements NotificationQueue {
                     if (isFifo) {
                         // Para colas FIFO se requiere MessageGroupId y (opcional) DeduplicationId
                         builder = builder
-                                .messageGroupId(event.getEmail() != null ? event.getEmail() : "default-group")
+                                .messageGroupId(event.email() != null ? event.email() : "default-group")
                                 .messageDeduplicationId(UUID.randomUUID().toString());
                     }
                     return Mono.fromFuture(sqsAsyncClient.sendMessage(builder.build())).then();

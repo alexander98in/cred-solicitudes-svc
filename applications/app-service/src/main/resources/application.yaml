@@ -11,9 +11,9 @@ spring:
   profiles:
     include: null
   r2dbc:
-    url: "r2dbc:postgresql://localhost:5432/pragma_credi"
-    username: "postgres"
-    password: "admin"
+    url: ${SPRING_R2DBC_URL}
+    username: ${SPRING_R2DBC_USERNAME}
+    password:  ${SPRING_R2DBC_PASSWORD}
   sql.init.mode: "never"
   messages:
     basename: i18n/validation-messages
@@ -26,8 +26,8 @@ adapters:
     port: 5432
     database: "pragma_credi"
     schema: "public"
-    username: "postgres"
-    password: "admin"
+    username: ${SPRING_R2DBC_USERNAME}
+    password: ${SPRING_R2DBC_PASSWORD}
 
 management:
   endpoints:
@@ -51,6 +51,18 @@ clients:
 
 security:
   jwt:
-    secret: "990d0e64f17121df3b779c857ef93c85fc43842daf91f43c21bfcaf5ac2a8140"
+    secret: ${JWT_SECRET:CHANGE_ME_IN_DEV}
     ttl-seconds: 3600
 
+aws:
+  region: ${AWS_REGION:us-east-1}
+  access-key: ${AWS_ACCESS_KEY_ID:dummy}
+  secret-key: ${AWS_SECRET_ACCESS_KEY:dummy}
+  sqs:
+    queue-url: ${AWS_SQS_QUEUE_NOTIFICATION_URL:dummy}
+
+outbox:
+  poll-interval-ms: 30000
+  batch-size: 50
+  max-retries: 10
+  parallelism: 5
