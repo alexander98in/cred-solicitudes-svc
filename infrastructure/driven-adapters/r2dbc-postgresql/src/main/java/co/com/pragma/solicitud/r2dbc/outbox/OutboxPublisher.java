@@ -1,7 +1,9 @@
 package co.com.pragma.solicitud.r2dbc.outbox;
 
+import co.com.pragma.solicitud.model.application.events.ApplicationAutoValidationEvent;
 import co.com.pragma.solicitud.model.application.events.ApplicationStatusChangedEvent;
 import co.com.pragma.solicitud.model.application.gateways.NotificationQueue;
+import co.com.pragma.solicitud.model.application.gateways.ValidationQueue;
 import co.com.pragma.solicitud.model.outbox.OutboxEvent;
 import co.com.pragma.solicitud.model.outbox.gateways.OutboxRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,14 +25,18 @@ import java.time.Duration;
 public class OutboxPublisher {
 
     private final OutboxRepository outboxRepository;
+    private final ValidationQueue validationQueue;
     private final NotificationQueue notificationQueue;
     private final ObjectMapper objectMapper;
 
-    // Config
-    @Value("${outbox.poll-interval-ms:2000}") private long pollMs;
-    @Value("${outbox.batch-size:50}")         private int batch;
-    @Value("${outbox.max-retries:10}")        private int maxRetries;
-    @Value("${outbox.parallelism:5}")         private int parallelism;
+    @Value("${outbox.poll-interval-ms:2000}")
+    private long pollMs;
+    @Value("${outbox.batch-size:50}")
+    private int batch;
+    @Value("${outbox.max-retries:10}")
+    private int maxRetries;
+    @Value("${outbox.parallelism:5}")
+    private int parallelism;
 
     private Disposable subscription;
 
@@ -62,7 +68,7 @@ public class OutboxPublisher {
     private Flux<Void> processOne(OutboxEvent e) {
         log.info("Outbox recibido: id={}, type={}, retries={}, processed={}",
                 e.getId(), e.getEventType(), e.getRetries(), e.isProcessed());
-        
+
         return switch (e.getEventType()) {
 
             case "ApplicationStatusChangedEvent" -> toEvent(e, ApplicationStatusChangedEvent.class)
@@ -78,16 +84,18 @@ public class OutboxPublisher {
                     })
                     .thenMany(markOk(e));
 
-            // Ejemplo para otro tipo:
-            // case "UserRegistered" -> toEvent(e, UserRegisteredEvent.class)
-            //         .flatMap(userEventsQueue::publishUserRegistered)
-            //         .doOnSuccess(v -> log.info("Publicado en SQS (UserRegistered): id={}", e.getId()))
-            //         .onErrorResume(ex -> {
-            //             log.error("Fallo publicando en SQS (UserRegistered). id={}, error={}",
-            //                     e.getId(), ex.getMessage(), ex);
-            //             return outboxRepository.markFailed(e.getId(), ex.getMessage()).then(Mono.empty());
-            //         })
-            //         .thenMany(markOk(e));
+            case "ApplicationAutoValidationEvent" -> toEvent(e, ApplicationAutoValidationEvent.class)
+                    .doOnNext(evt -> log.debug("Payload deserializado (id={}): {}", e.getId(), evt))
+                    .flatMap(validationQueue::publishAutoValidationApplicationEvent)
+                    .then(Mono.fromRunnable(() ->
+                            log.info("Publicado en SQS (ApplicationAutoValidationEvent): id={}", e.getId())
+                    ))
+                    .onErrorResume( ex -> {
+                        log.error("Fallo publicando en SQS (ApplicationAutoValidationEvent). id={}, error={}",
+                                e.getId(), ex.getMessage(), ex);
+                        return outboxRepository.markFailed(e.getId(), ex.getMessage()).then(Mono.empty());
+                    })
+                    .thenMany(markOk(e));
 
             default -> {
                 log.warn("Tipo de evento no soportado. id={}, type={}", e.getId(), e.getEventType());

@@ -13,4 +13,6 @@ public interface ApplicationRepository {
     Mono<Application> findApplicationById(UUID id);
     Mono<Integer> updateStatus(UUID idApp, UUID currentStatus, UUID newStatus);
 
+    Flux<Application> findByUserAndStatud(UUID idUser, UUID idStatus);
+
 }

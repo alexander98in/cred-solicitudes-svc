@@ -8,8 +8,8 @@ import lombok.RequiredArgsConstructor;
 public enum ApplicationStatus {
 
     PENDING("Pendiente de revisión"),
-    APPROVED("Aprobado"),
-    REJECTED("Rechazado");
+    APPROVED("Aprobada"),
+    REJECTED("Rechazada");
 
     private final String status;
 }

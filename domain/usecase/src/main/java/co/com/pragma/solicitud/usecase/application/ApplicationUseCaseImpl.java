@@ -4,7 +4,9 @@ import co.com.pragma.solicitud.model.application.Application;
 import co.com.pragma.solicitud.model.application.ApplicationDetails;
 import co.com.pragma.solicitud.model.application.ApplicationFilter;
 import co.com.pragma.solicitud.model.application.PaginatedApplications;
+import co.com.pragma.solicitud.model.application.events.ApplicationAutoValidationEvent;
 import co.com.pragma.solicitud.model.application.events.ApplicationStatusChangedEvent;
+import co.com.pragma.solicitud.model.application.events.ApprovedApplicationSummary;
 import co.com.pragma.solicitud.model.application.gateways.ApplicationCustomRepository;
 import co.com.pragma.solicitud.model.application.gateways.ApplicationRepository;
 import co.com.pragma.solicitud.model.application.gateways.NotificationQueue;
@@ -26,6 +28,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -78,7 +82,70 @@ public class ApplicationUseCaseImpl implements ApplicationUseCase{
                     application.setIdLoanType(loanType.getIdLoanType());
                     application.setIdUser(remoteUser.id());
                     application.setEmail(remoteUser.email());
-                    return applicationRepository.saveApplication(application);
+                    return applicationRepository.saveApplication(application)
+                            .flatMap(applicationSaved -> {
+                                if(Boolean.TRUE.equals(loanType.getValidationAutomatic())) {
+                                    Mono<UUID> approvedStatusIdMono =
+                                            statusRepository.getStatusByDescription(ApplicationStatus.APPROVED.getStatus())
+                                                    .switchIfEmpty(Mono.error(new ResourceNotFoundException(
+                                                            ErrorCodeDomain.STATUS_NOT_FOUND.getCode(),
+                                                            String.format(ErrorCodeDomain.STATUS_NOT_FOUND.getMessage(), ApplicationStatus.APPROVED.getStatus())
+                                                    )))
+                                                    .map(Status::getIdStatus);
+
+                                    Mono<List<ApprovedApplicationSummary>> approvedApplicationSumariesMono =
+                                            approvedStatusIdMono
+                                                    .flatMapMany(approvedId ->
+                                                            applicationRepository.findByUserAndStatud(remoteUser.id(), approvedId))
+                                                    .concatMap(approvedApplication -> loanTypeRepository.getLoanTypeById(approvedApplication.getIdLoanType())
+                                                            .map(loanTypeDB -> ApprovedApplicationSummary.builder()
+                                                                    .idApplication(approvedApplication.getIdApplication())
+                                                                    .amount(approvedApplication.getAmount())
+                                                                    .term(approvedApplication.getTerm())
+                                                                    .interestRate(loanTypeDB.getInterestRate())
+                                                                    .minAmount(loanTypeDB.getMinAmount())
+                                                                    .maxAmount(loanTypeDB.getMaxAmount())
+                                                                    .build()
+                                                            )
+                                                    )
+                                                    .collectList();
+
+                                    return approvedApplicationSumariesMono
+                                            .flatMap(approvedSummaries -> {
+                                                var event = ApplicationAutoValidationEvent.builder()
+                                                        .idApplication(applicationSaved.getIdApplication())
+                                                        .amount(applicationSaved.getAmount())
+                                                        .term(applicationSaved.getTerm())
+                                                        .email(applicationSaved.getEmail())
+                                                        .idLoanType(loanType.getIdLoanType())
+                                                        .loanTypeName(loanType.getName())
+                                                        .interestRate(loanType.getInterestRate())
+                                                        .minAmount(loanType.getMinAmount())
+                                                        .maxAmount(loanType.getMaxAmount())
+                                                        .idUser(remoteUser.id())
+                                                        .emailUser(remoteUser.email())
+                                                        .fullNameUser(remoteUser.name() + " " + remoteUser.lastName())
+                                                        .salaryUser(remoteUser.salary())
+                                                        .approvedApplicationSummaries(approvedSummaries)
+                                                        .occurredAt(OffsetDateTime.now())
+                                                        .build();
+
+                                                var outbox = OutboxEvent.builder()
+                                                        .aggregateId(applicationSaved.getIdApplication())
+                                                        .eventType("ApplicationAutoValidationEvent")
+                                                        .payload(event)
+                                                        .occurredAt(OffsetDateTime.now())
+                                                        .processed(false)
+                                                        .retries(0)
+                                                        .build();
+
+                                                return outboxRepository.save(outbox)
+                                                        .thenReturn(applicationSaved);
+
+                                            });
+                                }
+                                return  Mono.just(applicationSaved);
+                            });
                 })
                 .onErrorMap(e -> e);
     }

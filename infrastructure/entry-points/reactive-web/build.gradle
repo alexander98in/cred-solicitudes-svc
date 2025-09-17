@@ -21,4 +21,11 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.springframework.security:spring-security-test")
+
+    // AWS SDK v2 (con BOM)
+    implementation platform("software.amazon.awssdk:bom:2.25.48")
+    implementation "software.amazon.awssdk:sqs"
+    implementation "software.amazon.awssdk:sesv2"
+    // Opcional para SQS/SES local
+    testImplementation "org.testcontainers:localstack:1.20.1"
 }

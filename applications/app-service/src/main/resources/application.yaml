@@ -59,10 +59,25 @@ aws:
   access-key: ${AWS_ACCESS_KEY_ID:dummy}
   secret-key: ${AWS_SECRET_ACCESS_KEY:dummy}
   sqs:
+    incoming-queue:
+      url: ${AWS_SQS_QUEUE_INCOMING_URL:dummy}
+      is-fifo: true
+    validation-queue:
+      url: ${AWS_SQS_QUEUE_VALIDATION_URL:dummy}
+      is-fifo: true
     queue-url: ${AWS_SQS_QUEUE_NOTIFICATION_URL:dummy}
 
 outbox:
-  poll-interval-ms: 30000
+  poll-interval-ms: 5000
   batch-size: 50
   max-retries: 10
   parallelism: 5
+
+sqs:
+  incoming:
+    poll-interval-ms: 5000
+    max-messages: 10
+    wait-seconds: 10
+    visibility-timeout: 30
+    fifo:
+      max-concurrent-groups: 4

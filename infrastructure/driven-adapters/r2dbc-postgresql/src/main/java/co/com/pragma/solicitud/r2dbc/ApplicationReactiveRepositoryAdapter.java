@@ -40,4 +40,10 @@ public class ApplicationReactiveRepositoryAdapter extends ReactiveAdapterOperati
     public Mono<Integer> updateStatus(UUID idApp, UUID currentStatus, UUID newStatus) {
         return repository.updateStatus(idApp, currentStatus, newStatus);
     }
+
+    @Override
+    public Flux<Application> findByUserAndStatud(UUID idUser, UUID idStatus) {
+        return repository.findByIdUserAndIdStatus(idUser, idStatus)
+                .map(this::toEntity);
+    }
 }

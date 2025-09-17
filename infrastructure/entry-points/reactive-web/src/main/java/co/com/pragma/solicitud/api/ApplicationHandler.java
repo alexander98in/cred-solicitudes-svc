@@ -2,7 +2,6 @@ package co.com.pragma.solicitud.api;
 
 import co.com.pragma.solicitud.api.common.ResponseUtil;
 import co.com.pragma.solicitud.api.dto.request.ApplicationRequestDTO;
-import co.com.pragma.solicitud.api.dto.request.ChangeStatusRequestDTO;
 import co.com.pragma.solicitud.api.exceptions.RequestValidationException;
 import co.com.pragma.solicitud.api.facade.ApplicationFacade;
 import co.com.pragma.solicitud.model.application.ApplicationFilter;

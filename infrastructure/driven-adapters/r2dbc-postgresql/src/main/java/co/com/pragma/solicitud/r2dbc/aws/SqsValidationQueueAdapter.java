@@ -1,7 +1,7 @@
 package co.com.pragma.solicitud.r2dbc.aws;
 
-import co.com.pragma.solicitud.model.application.events.ApplicationStatusChangedEvent;
-import co.com.pragma.solicitud.model.application.gateways.NotificationQueue;
+import co.com.pragma.solicitud.model.application.events.ApplicationAutoValidationEvent;
+import co.com.pragma.solicitud.model.application.gateways.ValidationQueue;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,20 +14,19 @@ import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
-public class SqsNotificationQueueAdapter implements NotificationQueue {
+public class SqsValidationQueueAdapter implements ValidationQueue {
 
     private final SqsAsyncClient sqsAsyncClient;
     private final ObjectMapper objectMapper;
 
-    @Value("${aws.sqs.queue-url}")
+    @Value("${aws.sqs.validation-queue.url}")
     private String queueUrl;
 
-    @Value("${aws.sqs.is-fifo:false}")
+    @Value("${aws.sqs.validation-queue.is-fifo}")
     private boolean isFifo;
 
     @Override
-    public Mono<Void> publishStatusChangedEvent(ApplicationStatusChangedEvent event) {
-
+    public Mono<Void> publishAutoValidationApplicationEvent(ApplicationAutoValidationEvent event) {
         return Mono.fromCallable(() -> objectMapper.writeValueAsString(event))
                 .flatMap(json -> {
                     SendMessageRequest.Builder builder = SendMessageRequest.builder()
