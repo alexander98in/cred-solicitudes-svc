@@ -3,6 +3,7 @@ package co.com.pragma.solicitud.api.config;
 import co.com.pragma.solicitud.api.ApplicationHandler;
 import co.com.pragma.solicitud.api.dto.request.ApplicationRequestDTO;
 import co.com.pragma.solicitud.api.dto.response.ApplicationResponseDTO;
+import co.com.pragma.solicitud.api.dto.response.ApplicationUpdateResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -126,6 +127,32 @@ public class ApplicationRouterDocs {
                                             content = @Content(schema = @Schema(implementation = ApplicationResponseDTO.class))),
                                     @ApiResponse(responseCode = "400", description = "Solicitud inválida"),
                                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+                            }
+                    )
+            ),
+            @RouterOperation(
+                    path = "/api/v1/solicitudes/{idApplication}",
+                    produces = { "application/json" },
+                    method = RequestMethod.PUT,
+                    beanClass = ApplicationHandler.class,
+                    beanMethod = "changeApplicationStatus",
+                    operation = @Operation(
+                            operationId = "changeApplicationStatus",
+                            tags = { TAG },
+                            security = { @SecurityRequirement(name = "bearerAuth") },
+                            summary = "Actualizar estado de la solicitud",
+                            description = "Actualiza el estado de una solicitud existente, aplicando las reglas de negocio correspondientes.",
+                            parameters = {
+                                    @Parameter(name = "idApplication", in = ParameterIn.PATH, required = true,
+                                            description = "ID de la solicitud a actualizar"),
+                                    @Parameter(name = "targetStatus", in = ParameterIn.QUERY, description = "Estado destino: 'Aprobada' o 'Rechazada'")
+                            },
+                            responses = {
+                                    @ApiResponse(responseCode = "200", description = "OK",
+                                            content = @Content(schema = @Schema(implementation = ApplicationUpdateResponseDTO.class))),
+                                    @ApiResponse(responseCode = "400", description = "Solicitud inválida"),
+                                    @ApiResponse(responseCode = "404", description = "No encontrado"),
+                                    @ApiResponse(responseCode = "422", description = "Regla de negocio violada")
                             }
                     )
             )
