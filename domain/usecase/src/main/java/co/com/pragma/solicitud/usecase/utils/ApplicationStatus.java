@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum ApplicationStatus {
 
-    PENDING("Pendiente de revisión"),
+    PENDING("Pendiente de revision"),
     APPROVED("Aprobada"),
     REJECTED("Rechazada");
 

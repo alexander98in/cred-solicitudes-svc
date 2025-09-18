@@ -46,7 +46,7 @@ public class ApplicationUseCaseImpl implements ApplicationUseCase{
     @Override
     public Mono<Application> createApplication(Application application, String email) {
         return Mono.zip(
-                        statusRepository.getStatusByDescription("Pendiente de revisión")
+                        statusRepository.getStatusByDescription(ApplicationStatus.PENDING.getStatus())
                                 .switchIfEmpty(Mono.error(new ResourceNotFoundException(
                                         ErrorCodeDomain.PENDING_STATUS_NOT_FOUND.getCode(),
                                         String.format(ErrorCodeDomain.PENDING_STATUS_NOT_FOUND.getMessage())

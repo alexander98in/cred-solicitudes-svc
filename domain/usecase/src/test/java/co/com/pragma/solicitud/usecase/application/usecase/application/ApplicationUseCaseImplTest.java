@@ -138,7 +138,7 @@ public class ApplicationUseCaseImplTest {
 
         status = Status.builder()
                 .idStatus(statusId)
-                .description("Pendiente de revisión")
+                .description(ApplicationStatus.PENDING.getStatus())
                 .build();
 
         loanTypeAuto = LoanType.builder()
@@ -337,7 +337,7 @@ public class ApplicationUseCaseImplTest {
 
     @Test
     void createApplication_Success() {
-        when(statusRepository.getStatusByDescription("Pendiente de revisión")).thenReturn(Mono.just(status));
+        when(statusRepository.getStatusByDescription(ApplicationStatus.PENDING.getStatus())).thenReturn(Mono.just(status));
         when(loanTypeRepository.getLoanTypeById(loanTypeId)).thenReturn(Mono.just(loanType));
         when(externalUserService.getUserByEmail("john.doe@email.com")).thenReturn(Mono.just(remoteUser));
         when(applicationRepository.saveApplication(any(Application.class))).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
@@ -355,7 +355,7 @@ public class ApplicationUseCaseImplTest {
 
     @Test
     void createApplication_Fail_UserNotFound() {
-        when(statusRepository.getStatusByDescription("Pendiente de revisión")).thenReturn(Mono.just(status));
+        when(statusRepository.getStatusByDescription(ApplicationStatus.PENDING.getStatus())).thenReturn(Mono.just(status));
         when(loanTypeRepository.getLoanTypeById(loanTypeId)).thenReturn(Mono.just(loanType));
         when(externalUserService.getUserByEmail("john.doe@email.com")).thenReturn(Mono.empty());
 
@@ -369,7 +369,7 @@ public class ApplicationUseCaseImplTest {
 
     @Test
     void createApplication_Fail_LoanTypeNotFound() {
-        when(statusRepository.getStatusByDescription("Pendiente de revisión"))
+        when(statusRepository.getStatusByDescription(ApplicationStatus.PENDING.getStatus()))
                 .thenReturn(Mono.just(status));
         when(loanTypeRepository.getLoanTypeById(loanTypeId))
                 .thenReturn(Mono.empty());
@@ -386,7 +386,7 @@ public class ApplicationUseCaseImplTest {
 
     @Test
     void createApplication_Fail_StatusNotFound() {
-        when(statusRepository.getStatusByDescription("Pendiente de revisión"))
+        when(statusRepository.getStatusByDescription(ApplicationStatus.PENDING.getStatus()))
                 .thenReturn(Mono.empty());
         when(loanTypeRepository.getLoanTypeById(loanTypeId))
                 .thenReturn(Mono.just(loanType));
@@ -405,7 +405,7 @@ public class ApplicationUseCaseImplTest {
     void createApplication_Fail_AmountBelowMin() {
         application.setAmount(new BigDecimal("100")); // menos que minAmount
 
-        when(statusRepository.getStatusByDescription("Pendiente de revisión")).thenReturn(Mono.just(status));
+        when(statusRepository.getStatusByDescription(ApplicationStatus.PENDING.getStatus())).thenReturn(Mono.just(status));
         when(loanTypeRepository.getLoanTypeById(loanTypeId)).thenReturn(Mono.just(loanType));
         when(externalUserService.getUserByEmail("john.doe@email.com")).thenReturn(Mono.just(remoteUser));
 
@@ -420,7 +420,7 @@ public class ApplicationUseCaseImplTest {
     void createApplication_Fail_AmountAboveMax() {
         application.setAmount(new BigDecimal("10000")); // más que maxAmount
 
-        when(statusRepository.getStatusByDescription("Pendiente de revisión")).thenReturn(Mono.just(status));
+        when(statusRepository.getStatusByDescription(ApplicationStatus.PENDING.getStatus())).thenReturn(Mono.just(status));
         when(loanTypeRepository.getLoanTypeById(loanTypeId)).thenReturn(Mono.just(loanType));
         when(externalUserService.getUserByEmail("john.doe@email.com")).thenReturn(Mono.just(remoteUser));
 
