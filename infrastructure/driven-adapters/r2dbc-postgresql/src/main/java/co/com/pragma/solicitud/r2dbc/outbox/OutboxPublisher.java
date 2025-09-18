@@ -1,8 +1,10 @@
 package co.com.pragma.solicitud.r2dbc.outbox;
 
 import co.com.pragma.solicitud.model.application.events.ApplicationAutoValidationEvent;
+import co.com.pragma.solicitud.model.application.events.ApplicationReportEvent;
 import co.com.pragma.solicitud.model.application.events.ApplicationStatusChangedEvent;
 import co.com.pragma.solicitud.model.application.gateways.NotificationQueue;
+import co.com.pragma.solicitud.model.application.gateways.ReportQueue;
 import co.com.pragma.solicitud.model.application.gateways.ValidationQueue;
 import co.com.pragma.solicitud.model.outbox.OutboxEvent;
 import co.com.pragma.solicitud.model.outbox.gateways.OutboxRepository;
@@ -26,6 +28,7 @@ public class OutboxPublisher {
 
     private final OutboxRepository outboxRepository;
     private final ValidationQueue validationQueue;
+    private final ReportQueue reportQueue;
     private final NotificationQueue notificationQueue;
     private final ObjectMapper objectMapper;
 
@@ -92,6 +95,19 @@ public class OutboxPublisher {
                     ))
                     .onErrorResume( ex -> {
                         log.error("Fallo publicando en SQS (ApplicationAutoValidationEvent). id={}, error={}",
+                                e.getId(), ex.getMessage(), ex);
+                        return outboxRepository.markFailed(e.getId(), ex.getMessage()).then(Mono.empty());
+                    })
+                    .thenMany(markOk(e));
+
+            case "ApplicationReportEvent" -> toEvent(e, ApplicationReportEvent.class)
+                    .doOnNext(evt -> log.debug("Payload deserializado (id={}): {}", e.getId(), evt))
+                    .flatMap(reportQueue::publishReportGenerationEvent)
+                    .then(Mono.fromRunnable(() ->
+                            log.info("Publicado en SQS (ApplicationReportEvent): id={}", e.getId())
+                    ))
+                    .onErrorResume( ex -> {
+                        log.error("Fallo publicando en SQS (ApplicationReportEvent). id={}, error={}",
                                 e.getId(), ex.getMessage(), ex);
                         return outboxRepository.markFailed(e.getId(), ex.getMessage()).then(Mono.empty());
                     })

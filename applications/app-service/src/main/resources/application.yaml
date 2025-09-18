@@ -66,6 +66,9 @@ aws:
       url: ${AWS_SQS_QUEUE_VALIDATION_URL:dummy}
       is-fifo: true
     queue-url: ${AWS_SQS_QUEUE_NOTIFICATION_URL:dummy}
+    report-queue:
+        url: ${AWS_SQS_QUEUE_REPORT_URL:dummy}
+        is-fifo: true
 
 outbox:
   poll-interval-ms: 5000

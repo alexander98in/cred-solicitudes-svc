@@ -25,7 +25,6 @@ import java.util.UUID;
 public class SqsInboundPoller {
 
     private final SqsAsyncClient sqsAsyncClient;
-
     private final ObjectMapper objectMapper;
     private final ApplicationUseCase applicationUseCase;
 
@@ -34,18 +33,17 @@ public class SqsInboundPoller {
 
     // Tuning
     @Value("${sqs.incoming.poll-interval-ms:2000}")
-    private long pollMs;          // cada cuánto disparar receive
+    private long pollMs;
 
     @Value("${sqs.incoming.max-messages:10}")
-    private int maxMessages;           // batch size
+    private int maxMessages;
 
     @Value("${sqs.incoming.wait-seconds:10}")
-    private int waitSeconds;           // long-polling
+    private int waitSeconds;
 
     @Value("${sqs.incoming.visibility-timeout:30}")
     private int visibilitySeconds;
 
-    // Paralelismo ENTRE grupos (cada grupo se procesa secuencialmente).
     @Value("${sqs.incoming.fifo.max-concurrent-groups:4}")
     private int maxConcurrentGroups;
 
@@ -57,7 +55,7 @@ public class SqsInboundPoller {
                 queueUrl, waitSeconds, visibilitySeconds, maxConcurrentGroups);
 
         subscription = Mono.defer(this::receiveAndProcessOnce)
-                .repeatWhen(repeat -> repeat.delayElements(Duration.ofMillis(pollMs))) // reintenta de nuevo tras cada ciclo
+                .repeatWhen(repeat -> repeat.delayElements(Duration.ofMillis(pollMs)))
                 .onErrorContinue((e, o) -> log.error("Error en ciclo inbound FIFO (continuando): {}", e.toString(), e))
                 .subscribe();
 
@@ -79,7 +77,7 @@ public class SqsInboundPoller {
                 .flatMapMany(resp -> Flux.fromIterable(resp.messages()))
                 .groupBy(msg -> msg.attributes().get(MessageSystemAttributeName.MESSAGE_GROUP_ID))
                 .flatMap(groupFlux -> groupFlux.concatMap(this::processMessage), maxConcurrentGroups)
-                .then(); // convierte a Mono<Void> para el repeat
+                .then();
     }
 
     @PreDestroy
@@ -100,13 +98,11 @@ public class SqsInboundPoller {
     private Mono<DecisionMessage> parseDecision(Message msg) {
         return Mono.fromCallable(() -> {
             String body = msg.body();
-            // Soporte SNS->SQS sin RawMessageDelivery (sobre SNS con .Message)
             JsonNode root = objectMapper.readTree(body);
             if (root.has("Type") && "Notification".equals(root.path("Type").asText()) && root.has("Message")) {
                 String inner = root.path("Message").asText();
                 return objectMapper.readValue(inner, DecisionMessage.class);
             }
-            // Caso RAW (SQS directo o SNS con RawMessageDelivery=true)
             return objectMapper.readValue(body, DecisionMessage.class);
         });
     }
@@ -118,7 +114,6 @@ public class SqsInboundPoller {
                     String estado = decision.getEstado() == null ? "" : decision.getEstado().trim();
                     UUID id = decision.getIdApplication();
                     log.info("Inbound decision: idApplication={}, estado={}", id, estado);
-                    // Si viene "Pendiente de revisión" NO cambiamos estado (solo ACK)
                     if (estado.equalsIgnoreCase("Pendiente de revisión")) {
                         log.info("Estado 'Pendiente de revisión': no se actualiza BD. ACK directo.");
                         return deleteMessage(msg);
@@ -127,12 +122,10 @@ public class SqsInboundPoller {
                             .doOnSuccess(det ->
                                     log.info("Estado actualizado (inbound): id={}, nuevo={}, email={}",
                                             det.getId(), det.getStatus(), det.getEmail()))
-                            // Solo ACK si todo salió bien
                             .then(deleteMessage(msg));
                 })
                 .onErrorResume(ex -> {
                     log.error("Fallo procesando mensaje FIFO id={}, error={}", msg.messageId(), ex.toString(), ex);
-                    // No borrar: reintento tras visibility timeout o DLQ
                     return Mono.empty();
                 });
     }

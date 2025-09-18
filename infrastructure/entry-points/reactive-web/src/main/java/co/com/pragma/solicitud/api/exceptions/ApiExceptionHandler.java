@@ -39,7 +39,6 @@ public class ApiExceptionHandler implements ErrorWebExceptionHandler {
         if (exchange.getResponse().isCommitted()) {
             return Mono.error(ex);
         }
-
         var pair = toStatusAndBody(exchange, ex);
         var status = pair.httpStatus();
         var body = pair.body();
@@ -58,7 +57,6 @@ public class ApiExceptionHandler implements ErrorWebExceptionHandler {
             // 4xx: sin stacktrace (ruido), solo warn
             log.warn("{} {} {} -> {} {} : {}", reqId, method, path, status.value(), exName, ex.getMessage());
         }
-        // -----------------------------------------
 
         var resp = exchange.getResponse();
         resp.setStatusCode(status);

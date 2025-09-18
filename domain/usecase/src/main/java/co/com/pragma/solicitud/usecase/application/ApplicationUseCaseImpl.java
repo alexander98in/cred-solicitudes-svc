@@ -5,6 +5,7 @@ import co.com.pragma.solicitud.model.application.ApplicationDetails;
 import co.com.pragma.solicitud.model.application.ApplicationFilter;
 import co.com.pragma.solicitud.model.application.PaginatedApplications;
 import co.com.pragma.solicitud.model.application.events.ApplicationAutoValidationEvent;
+import co.com.pragma.solicitud.model.application.events.ApplicationReportEvent;
 import co.com.pragma.solicitud.model.application.events.ApplicationStatusChangedEvent;
 import co.com.pragma.solicitud.model.application.events.ApprovedApplicationSummary;
 import co.com.pragma.solicitud.model.application.gateways.ApplicationCustomRepository;
@@ -276,7 +277,32 @@ public class ApplicationUseCaseImpl implements ApplicationUseCase{
                                                                 .retries(0)
                                                                 .build();
 
+                                                        Mono<Void> reportEventMono = Mono.empty(); // Inicializamos el Mono vacío
+
+                                                        if (ApplicationStatus.APPROVED.getStatus().equalsIgnoreCase(applicationDetails.getStatus())) {
+                                                            var reportEvent = ApplicationReportEvent.builder()
+                                                                    .idApplication(applicationDetails.getId())
+                                                                    .newStatus(applicationDetails.getStatus())
+                                                                    .amount(applicationDetails.getAmount())
+                                                                    .occurredAt(java.time.OffsetDateTime.now())
+                                                                    .build();
+
+                                                            // Crear un OutboxEvent para el evento ApplicationReportEvent
+                                                            var reportOutbox = OutboxEvent.builder()
+                                                                    .aggregateId(reportEvent.idApplication())
+                                                                    .eventType("ApplicationReportEvent")
+                                                                    .payload(reportEvent)
+                                                                    .occurredAt(java.time.OffsetDateTime.now())
+                                                                    .processed(false)
+                                                                    .retries(0)
+                                                                    .build();
+
+                                                            // Guardar el evento adicional en Outbox
+                                                            reportEventMono = outboxRepository.save(reportOutbox);
+                                                        }
+
                                                         return outboxRepository.save(outbox)
+                                                                .then(reportEventMono)  // Aseguramos que ambos eventos se guarden en Outbox
                                                                 .thenReturn(applicationDetails);
                                                     });
                                         });

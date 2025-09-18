@@ -43,10 +43,8 @@ public class SecurityConfig {
                 .authorizeExchange(ex -> ex
                         // CORS preflight
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
                         // Públicos (ej. docs)
                         .pathMatchers("/actuator/**", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
-
                         // Protegidos (ajusta a tu política real):
                         // Crear solicitud: ASESOR y CLIENTE
                         .pathMatchers(HttpMethod.POST, "/api/v1/solicitudes").hasAnyAuthority("CLIENTE")
