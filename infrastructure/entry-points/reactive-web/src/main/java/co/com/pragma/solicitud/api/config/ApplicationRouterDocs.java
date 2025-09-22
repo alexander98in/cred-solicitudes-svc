@@ -52,7 +52,7 @@ public class ApplicationRouterDocs {
                             responses = {
                                     @ApiResponse(responseCode = "201", description = "Creado",
                                             content = @Content(schema = @Schema(implementation = ApplicationResponseDTO.class))),
-                                    @ApiResponse(responseCode = "400", description = "Solicitud inválida"),
+                                    @ApiResponse(responseCode = "400", description = "Solicitud invalida"),
                                     @ApiResponse(responseCode = "409", description = "Conflicto por duplicados"),
                                     @ApiResponse(responseCode = "422", description = "Regla de negocio violada")
                             }
@@ -108,24 +108,24 @@ public class ApplicationRouterDocs {
                             operationId = "listApplicationsPageable",
                             tags = { TAG },
                             security = { @SecurityRequirement(name = "bearerAuth") },
-                            summary = "Listar solicitudes con filtros y paginación",
-                            description = "Permite listar solicitudes aplicando filtros opcionales por email, monto, tipo de préstamo, estado y salario, soportando paginación.",
+                            summary = "Listar solicitudes con filtros y paginacion",
+                            description = "Permite listar solicitudes aplicando filtros opcionales por email, monto, tipo de prestamo, estado y salario, soportando paginacion.",
                             parameters = {
                                     @Parameter(name = "email", in = ParameterIn.QUERY, description = "Filtrar por email del solicitante"),
-                                    @Parameter(name = "term", in = ParameterIn.QUERY, description = "Filtrar por plazo del préstamo (en meses)"),
-                                    @Parameter(name = "minAmount", in = ParameterIn.QUERY, description = "Monto mínimo del préstamo"),
-                                    @Parameter(name = "maxAmount", in = ParameterIn.QUERY, description = "Monto máximo del préstamo"),
-                                    @Parameter(name = "loanTypeName", in = ParameterIn.QUERY, description = "Filtrar por tipo de préstamo"),
+                                    @Parameter(name = "term", in = ParameterIn.QUERY, description = "Filtrar por plazo del prestamo (en meses)"),
+                                    @Parameter(name = "minAmount", in = ParameterIn.QUERY, description = "Monto minimo del prestamo"),
+                                    @Parameter(name = "maxAmount", in = ParameterIn.QUERY, description = "Monto maximo del prestamo"),
+                                    @Parameter(name = "loanTypeName", in = ParameterIn.QUERY, description = "Filtrar por tipo de prestamo"),
                                     @Parameter(name = "statusDescription", in = ParameterIn.QUERY, description = "Filtrar por estado de la solicitud"),
-                                    @Parameter(name = "minSalary", in = ParameterIn.QUERY, description = "Salario mínimo del solicitante"),
-                                    @Parameter(name = "maxSalary", in = ParameterIn.QUERY, description = "Salario máximo del solicitante"),
-                                    @Parameter(name = "page", in = ParameterIn.QUERY, description = "Número de página, por defecto 0"),
-                                    @Parameter(name = "size", in = ParameterIn.QUERY, description = "Tamaño de página, por defecto 10")
+                                    @Parameter(name = "minSalary", in = ParameterIn.QUERY, description = "Salario minimo del solicitante"),
+                                    @Parameter(name = "maxSalary", in = ParameterIn.QUERY, description = "Salario maximo del solicitante"),
+                                    @Parameter(name = "page", in = ParameterIn.QUERY, description = "Numero de pagina, por defecto 0"),
+                                    @Parameter(name = "size", in = ParameterIn.QUERY, description = "Tamaño de pagina, por defecto 10")
                             },
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "OK",
                                             content = @Content(schema = @Schema(implementation = ApplicationResponseDTO.class))),
-                                    @ApiResponse(responseCode = "400", description = "Solicitud inválida"),
+                                    @ApiResponse(responseCode = "400", description = "Solicitud invalida"),
                                     @ApiResponse(responseCode = "500", description = "Error interno del servidor")
                             }
                     )
@@ -150,7 +150,7 @@ public class ApplicationRouterDocs {
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "OK",
                                             content = @Content(schema = @Schema(implementation = ApplicationUpdateResponseDTO.class))),
-                                    @ApiResponse(responseCode = "400", description = "Solicitud inválida"),
+                                    @ApiResponse(responseCode = "400", description = "Solicitud invalida"),
                                     @ApiResponse(responseCode = "404", description = "No encontrado"),
                                     @ApiResponse(responseCode = "422", description = "Regla de negocio violada")
                             }

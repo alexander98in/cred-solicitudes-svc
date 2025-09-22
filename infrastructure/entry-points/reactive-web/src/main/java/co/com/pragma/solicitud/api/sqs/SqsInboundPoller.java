@@ -1,6 +1,7 @@
 package co.com.pragma.solicitud.api.sqs;
 
 import co.com.pragma.solicitud.usecase.application.ApplicationUseCase;
+import co.com.pragma.solicitud.usecase.utils.ApplicationStatus;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
@@ -88,7 +89,7 @@ public class SqsInboundPoller {
         }
     }
 
-    /** Body esperado: {"idApplication":"<uuid>","estado":"Aprobada|Rechazada|Pendiente de revisión"} */
+    /** Body esperado: {"idApplication":"<uuid>","estado":"Aprobada|Rechazada|Pendiente de revision"} */
     @Data
     public static class DecisionMessage {
         private UUID idApplication;
@@ -114,8 +115,8 @@ public class SqsInboundPoller {
                     String estado = decision.getEstado() == null ? "" : decision.getEstado().trim();
                     UUID id = decision.getIdApplication();
                     log.info("Inbound decision: idApplication={}, estado={}", id, estado);
-                    if (estado.equalsIgnoreCase("Pendiente de revisión")) {
-                        log.info("Estado 'Pendiente de revisión': no se actualiza BD. ACK directo.");
+                    if (estado.equalsIgnoreCase(ApplicationStatus.PENDING.getStatus())) {
+                        log.info("Estado 'Pendiente de revision': no se actualiza BD. ACK directo.");
                         return deleteMessage(msg);
                     }
                     return applicationUseCase.changeApplicationStatus(id, estado)

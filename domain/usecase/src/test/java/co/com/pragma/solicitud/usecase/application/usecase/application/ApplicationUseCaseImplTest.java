@@ -108,7 +108,7 @@ public class ApplicationUseCaseImplTest {
                 .amount(new BigDecimal("1500000"))
                 .term(10)
                 .email("john.doe@email.com")
-                .idStatus(pendingId)   // importante: está en Pendiente
+                .idStatus(pendingId)   // importante: esta en Pendiente
                 .idLoanType(loanTypeId)
                 .idUser(userId)
                 .build();
@@ -143,7 +143,7 @@ public class ApplicationUseCaseImplTest {
 
         loanTypeAuto = LoanType.builder()
                 .idLoanType(loanTypeId)
-                .name("Préstamo Personal")
+                .name("Prestamo Personal")
                 .minAmount(new BigDecimal("500"))
                 .maxAmount(new BigDecimal("5000"))
                 .interestRate(new BigDecimal("5"))
@@ -205,7 +205,7 @@ public class ApplicationUseCaseImplTest {
         when(applicationRepository.findByUserAndStatud(userId, approvedStatus.getIdStatus()))
                 .thenReturn(Flux.just(approved1, approved2));
 
-        // loanType por cada approved (aquí mismo)
+        // loanType por cada approved (aqui mismo)
         when(loanTypeRepository.getLoanTypeById(loanTypeId))
                 .thenReturn(Mono.just(loanTypeAuto));
 
@@ -246,7 +246,7 @@ public class ApplicationUseCaseImplTest {
 
         // loan type actual
         assertEquals(loanTypeId, evt.idLoanType());
-        assertEquals("Préstamo Personal", evt.loanTypeName());
+        assertEquals("Prestamo Personal", evt.loanTypeName());
         assertEquals(new BigDecimal("5"), evt.interestRate());
         assertEquals(new BigDecimal("500"), evt.minAmount());
         assertEquals(new BigDecimal("5000"), evt.maxAmount());
@@ -304,13 +304,13 @@ public class ApplicationUseCaseImplTest {
                 .expectError(ResourceNotFoundException.class)
                 .verify();
 
-        // No debería intentar guardar en outbox
+        // No deberia intentar guardar en outbox
         verify(outboxRepository, never()).save(any());
     }
 
     @Test
     void createApplication_WhenValidationAutomaticFalse_DoesNotPublishOutbox() {
-        // Muta el loan type para que NO requiera validación automática
+        // Muta el loan type para que NO requiera validacion automatica
         LoanType loanTypeManual = loanTypeAuto.toBuilder().validationAutomatic(false).build();
         when(loanTypeRepository.getLoanTypeById(loanTypeId)).thenReturn(Mono.just(loanTypeManual));
 
@@ -397,7 +397,7 @@ public class ApplicationUseCaseImplTest {
 
         StepVerifier.create(result)
                 .expectErrorMatches(throwable -> throwable instanceof ResourceNotFoundException
-                        && throwable.getMessage().contains("Estado 'Pendiente de revisión'"))
+                        && throwable.getMessage().contains("Estado 'Pendiente"))
                 .verify();
     }
 
@@ -418,7 +418,7 @@ public class ApplicationUseCaseImplTest {
 
     @Test
     void createApplication_Fail_AmountAboveMax() {
-        application.setAmount(new BigDecimal("10000")); // más que maxAmount
+        application.setAmount(new BigDecimal("10000")); // mas que maxAmount
 
         when(statusRepository.getStatusByDescription(ApplicationStatus.PENDING.getStatus())).thenReturn(Mono.just(status));
         when(loanTypeRepository.getLoanTypeById(loanTypeId)).thenReturn(Mono.just(loanType));
@@ -497,7 +497,7 @@ public class ApplicationUseCaseImplTest {
                 .verifyComplete();
     }
 
-    // -------------------- changeApplicationStatus: ÉXITO (APROBAR) --------------------
+    // -------------------- changeApplicationStatus: EXITO (APROBAR) --------------------
     @Test
     void changeApplicationStatus_Approve_Success() {
         // === Arrange ===
@@ -533,7 +533,7 @@ public class ApplicationUseCaseImplTest {
                 .thenReturn(Mono.just(approvedStatus));
 
         // 4) updateStatus exitoso (1 fila)
-        //    Usamos thenAnswer para ver/validar exactamente qué llega al mock.
+        //    Usamos thenAnswer para ver/validar exactamente que llega al mock.
         when(applicationRepository.updateStatus(any(UUID.class), any(UUID.class), any(UUID.class)))
                 .thenAnswer(inv -> {
                     UUID a0 = inv.getArgument(0); // idApp
@@ -569,7 +569,7 @@ public class ApplicationUseCaseImplTest {
                 .verifyComplete();
     }
 
-    // -------------------- changeApplicationStatus: ÉXITO (RECHAZAR) --------------------
+    // -------------------- changeApplicationStatus: EXITO (RECHAZAR) --------------------
     @Test
     void changeApplicationStatus_Reject_Success() {
         when(applicationRepository.findApplicationById(appId))
@@ -596,7 +596,7 @@ public class ApplicationUseCaseImplTest {
                 .verifyComplete();
     }
 
-    // -------------------- targetStatus vacío / en blanco --------------------
+    // -------------------- targetStatus vacio / en blanco --------------------
     @Test
     void changeApplicationStatus_Fail_BlankTargetStatus() {
         StepVerifier.create(useCase.changeApplicationStatus(appId, "   "))
@@ -604,7 +604,7 @@ public class ApplicationUseCaseImplTest {
                 .verify();
     }
 
-    // -------------------- targetStatus inválido --------------------
+    // -------------------- targetStatus invalido --------------------
     @Test
     void changeApplicationStatus_Fail_InvalidTargetStatus() {
         StepVerifier.create(useCase.changeApplicationStatus(appId, "En estudio"))
@@ -634,12 +634,12 @@ public class ApplicationUseCaseImplTest {
         when(applicationRepository.findApplicationById(appId))
                 .thenReturn(Mono.just(appPending));
 
-        // Mock explícito: pendiente vacío (dispara el error esperado)
+        // Mock explicito: pendiente vacio (dispara el error esperado)
         when(statusRepository.getStatusByDescription(ApplicationStatus.PENDING.getStatus()))
                 .thenReturn(Mono.empty());
 
-        // IMPORTANTE: también mockear la consulta del estado destino
-        // (aunque no se llegue lógicamente, se construye el Mono en assembly)
+        // IMPORTANTE: tambien mockear la consulta del estado destino
+        // (aunque no se llegue logicamente, se construye el Mono en assembly)
         when(statusRepository.getStatusByDescription(ApplicationStatus.APPROVED.getStatus()))
                 .thenReturn(Mono.just(
                         Status.builder()
@@ -665,7 +665,7 @@ public class ApplicationUseCaseImplTest {
                 .verify();
     }
 
-    // -------------------- la solicitud ya no está en 'Pendiente' --------------------
+    // -------------------- la solicitud ya no esta en 'Pendiente' --------------------
     @Test
     void changeApplicationStatus_Fail_NotInPending() {
         Application appNotPending = appPending.toBuilder().idStatus(approvedId).build();
@@ -750,13 +750,13 @@ public class ApplicationUseCaseImplTest {
         when(statusRepository.getStatusByDescription(ApplicationStatus.APPROVED.getStatus()))
                 .thenReturn(Mono.just(approvedStatus));
 
-        // 4) fallback (por si no matchea exacto) + stub específico con eq(...)
+        // 4) fallback (por si no matchea exacto) + stub especifico con eq(...)
         when(applicationRepository.updateStatus(any(UUID.class), any(UUID.class), any(UUID.class)))
                 .thenReturn(Mono.just(1));
         when(applicationRepository.updateStatus(eq(appId), eq(pendingId), eq(approvedId)))
                 .thenReturn(Mono.just(1));
 
-        // 5) después del update, se consulta el status por ID
+        // 5) despues del update, se consulta el status por ID
         when(statusRepository.getStatusById(approvedId))
                 .thenReturn(Mono.just(approvedStatus));
 

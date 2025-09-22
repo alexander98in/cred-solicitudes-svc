@@ -3,7 +3,7 @@
     <!-- Consola -->
     <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <!-- Patrón de log:
+            <!-- Patrn de log:
                  %d = fecha y hora
                  [%thread] = nombre del hilo
                  [%X{requestId}] = requestId del MDC
@@ -19,7 +19,7 @@
         <appender-ref ref="Console" />
     </root>
 
-    <!-- Nivel específico para tu paquete API (DEBUG para desarrollo) -->
+    <!-- Nivel especifico para tu paquete API (DEBUG para desarrollo) -->
     <logger name="co.com.pragma.autenticacion.api" level="DEBUG" additivity="false">
         <appender-ref ref="Console"/>
     </logger>

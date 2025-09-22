@@ -82,8 +82,8 @@ public class ApplicationCustomRepositoryAdapter implements ApplicationCustomRepo
                             .interestRate(row.get("interest_rate", BigDecimal.class))
                             .status(row.get("status", String.class))
                             .salary(row.get("salary", BigDecimal.class))
-                            .monthlyDebt(BigDecimal.ZERO)          // futura lógica
-                            .monthlyInstallment(BigDecimal.ZERO)   // futura lógica
+                            .monthlyDebt(BigDecimal.ZERO)          // futura logica
+                            .monthlyInstallment(BigDecimal.ZERO)   // futura logica
                             .build())
                     .all();
 
@@ -106,7 +106,7 @@ public class ApplicationCustomRepositoryAdapter implements ApplicationCustomRepo
     }
 
     /**
-     * Método utilitario para bind dinámico de filtros opcionales
+     * Metodo utilitario para bind dinamico de filtros opcionales
      */
     private DatabaseClient.GenericExecuteSpec bindFilters(DatabaseClient.GenericExecuteSpec spec, ApplicationFilter filter) {
         if (filter.getEmail() != null) spec = spec.bind("email", filter.getEmail());

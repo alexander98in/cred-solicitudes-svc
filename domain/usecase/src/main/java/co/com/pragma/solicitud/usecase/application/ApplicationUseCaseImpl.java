@@ -184,7 +184,7 @@ public class ApplicationUseCaseImpl implements ApplicationUseCase{
     }
 
     /**
-     * Cambia el estado de una solicitud a "Aprobado" o "Rechazado" solo si está en estado "Pendiente de revisión".
+     * Cambia el estado de una solicitud a "Aprobado" o "Rechazado" solo si esta en estado "Pendiente de revision".
      * @param idApplication ID de la solicitud
      * @param targetStatus Nombre del estado destino ("Aprobado" o "Rechazado")
      * @return Mono<ApplicationDetails> con la solicitud actualizada
@@ -277,7 +277,7 @@ public class ApplicationUseCaseImpl implements ApplicationUseCase{
                                                                 .retries(0)
                                                                 .build();
 
-                                                        Mono<Void> reportEventMono = Mono.empty(); // Inicializamos el Mono vacío
+                                                        Mono<Void> reportEventMono = Mono.empty(); // Inicializamos el Mono vacio
 
                                                         if (ApplicationStatus.APPROVED.getStatus().equalsIgnoreCase(applicationDetails.getStatus())) {
                                                             var reportEvent = ApplicationReportEvent.builder()

@@ -96,7 +96,7 @@ public class ApplicationHandler {
             String idApplication = (String) req.pathVariable("idApplication");
             String targetStatus = req.queryParam("targetStatus").orElse(null);
             if (targetStatus == null || targetStatus.isBlank()) {
-                return ResponseUtil.badRequest(req, "El parámetro 'targetStatus' es obligatorio", null);
+                return ResponseUtil.badRequest(req, "El parametro 'targetStatus' es obligatorio", null);
             }
             return applicationFacade.changeApplicationStatus(idApplication, targetStatus)
                 .doOnSuccess(resp -> log.info("[{}] solicitud actualizada id={}, nuevo estado={}", requestId, resp.id(), targetStatus))
@@ -111,8 +111,8 @@ public class ApplicationHandler {
         if (errors.hasErrors()) {
             var map = new java.util.LinkedHashMap<String, String>();
             errors.getFieldErrors().forEach(fe -> map.put(fe.getField(), fe.getDefaultMessage()));
-            log.warn("[{}] Solicitud inválida en registerApplication: {}", MDC.get(MDC_KEY), map);
-            throw new RequestValidationException("Datos inválidos en la solicitud", map);
+            log.warn("[{}] Solicitud invalida en registerApplication: {}", MDC.get(MDC_KEY), map);
+            throw new RequestValidationException("Datos invalidos en la solicitud", map);
         }
         return Mono.just(dto);
     }

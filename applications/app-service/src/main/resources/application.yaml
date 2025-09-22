@@ -1,8 +1,8 @@
 server:
-  port: 8081
+  port: ${SERVER_PORT_REQ:8081}
 spring:
   application:
-    name: "cred-solicitud-svc"
+    name: ${APP_NAME_REQ:cred-solicitud-svc}
   devtools:
     add-properties: false
   jackson:
@@ -12,22 +12,22 @@ spring:
     include: null
   r2dbc:
     url: ${SPRING_R2DBC_URL}
-    username: ${SPRING_R2DBC_USERNAME}
-    password:  ${SPRING_R2DBC_PASSWORD}
+    username: ${DB_USERNAME}
+    password:  ${DB_PASSWORD}
   sql.init.mode: "never"
   messages:
-    basename: i18n/validation-messages
-    encoding: UTF-8
+    basename: ${I18N_BASENAME_REQ:i18n/validation-messages}
+    encoding: ${I18N_ENCODING_REQ:UTF-8}
     fallback-to-system-locale: false
 
 adapters:
   r2dbc:
-    host: "localhost"
-    port: 5432
-    database: "pragma_credi"
-    schema: "public"
-    username: ${SPRING_R2DBC_USERNAME}
-    password: ${SPRING_R2DBC_PASSWORD}
+    host: ${DB_HOST:localhost}
+    port: ${DB_PORT:5432}
+    database: ${DB_NAME:pragma_credi}
+    schema: ${DB_SCHEMA:public}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:admin}
 
 management:
   endpoints:
@@ -39,7 +39,7 @@ management:
       probes:
         enabled: true
 cors:
-  allowed-origins: "http://localhost:4200,http://localhost:8080"
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200,http://localhost:8080}
 
 logging:
   level:
@@ -47,40 +47,40 @@ logging:
 
 clients:
   user-service:
-    base-url: http://localhost:8080
+    base-url: ${USER_SERVICE_AUTH_BASE_URL:http://localhost:8080}
 
 security:
   jwt:
-    secret: ${JWT_SECRET:CHANGE_ME_IN_DEV}
-    ttl-seconds: 3600
+    secret: ${JWT_SECRET:change-me-in-prod}
+    ttl-seconds: ${JWT_TTL_SECONDS:3600}
 
 aws:
   region: ${AWS_REGION:us-east-1}
   access-key: ${AWS_ACCESS_KEY_ID:dummy}
   secret-key: ${AWS_SECRET_ACCESS_KEY:dummy}
   sqs:
+    queue-url: ${AWS_SQS_QUEUE_NOTIFICATION_URL:dummy}
     incoming-queue:
       url: ${AWS_SQS_QUEUE_INCOMING_URL:dummy}
       is-fifo: true
     validation-queue:
       url: ${AWS_SQS_QUEUE_VALIDATION_URL:dummy}
       is-fifo: true
-    queue-url: ${AWS_SQS_QUEUE_NOTIFICATION_URL:dummy}
     report-queue:
         url: ${AWS_SQS_QUEUE_REPORT_URL:dummy}
         is-fifo: true
 
 outbox:
-  poll-interval-ms: 5000
-  batch-size: 50
-  max-retries: 10
-  parallelism: 5
+  poll-interval-ms: ${OUTBOX_POLL_INTERVAL_MS:5000}
+  batch-size: ${OUTBOX_BATCH_SIZE:50}
+  max-retries: ${OUTBOX_MAX_RETRIES:10}
+  parallelism: ${OUTBOX_PARALLELISM:5}
 
 sqs:
   incoming:
-    poll-interval-ms: 5000
-    max-messages: 10
-    wait-seconds: 10
-    visibility-timeout: 30
+    poll-interval-ms: ${SQS_INCOMING_POLL_INTERVAL_MS:5000}
+    max-messages: ${SQS_INCOMING_MAX_MESSAGES:10}
+    wait-seconds: ${SQS_INCOMING_WAIT_SECONDS:10}
+    visibility-timeout: ${SQS_INCOMING_VISIBILITY_TIMEOUT:30}
     fifo:
-      max-concurrent-groups: 4
+      max-concurrent-groups: ${SQS_INCOMING_FIFO_MAX_CONCURRENT_GROUPS:4}

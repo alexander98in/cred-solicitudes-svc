@@ -16,7 +16,7 @@ repositories {
 
 tasks.test {
     useJUnitPlatform() // importante para JUnit 5
-    finalizedBy tasks.jacocoTestReport // generar reporte después de test
+    finalizedBy tasks.jacocoTestReport // generar reporte despues de test
 }
 
 jacoco {

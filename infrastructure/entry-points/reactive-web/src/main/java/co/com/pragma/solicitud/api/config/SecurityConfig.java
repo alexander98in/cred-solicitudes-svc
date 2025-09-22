@@ -43,9 +43,9 @@ public class SecurityConfig {
                 .authorizeExchange(ex -> ex
                         // CORS preflight
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Públicos (ej. docs)
+                        // Publicos (ej. docs)
                         .pathMatchers("/actuator/**", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
-                        // Protegidos (ajusta a tu política real):
+                        // Protegidos (ajusta a tu politica real):
                         // Crear solicitud: ASESOR y CLIENTE
                         .pathMatchers(HttpMethod.POST, "/api/v1/solicitudes").hasAnyAuthority("CLIENTE")
                         // Listar solicitudes: ADMIN y ASESOR
@@ -83,7 +83,7 @@ public class SecurityConfig {
 
     @Bean
     public ReactiveAuthenticationManager jwtAuthenticationManager() {
-        // el convert ya validó; passthrough
+        // el convert ya valid; passthrough
         return authentication -> Mono.just(authentication);
     }
 }

@@ -123,7 +123,7 @@ public class OutboxPublisher {
     }
 
     /**
-     * Deserializa el payload a un tipo concreto. Si falla, marca failed y continúa.
+     * Deserializa el payload a un tipo concreto. Si falla, marca failed y continua.
      */
     private <T> Flux<T> toEvent(OutboxEvent e, Class<T> type) {
         try {

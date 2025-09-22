@@ -35,7 +35,7 @@ public class WebClientConfig {
 
                                     return next.exchange(mutated);
                                 })
-                                // Si no hay contexto/usuario, sigue sin header (o usa un token técnico si quieres)
+                                // Si no hay contexto/usuario, sigue sin header (o usa un token tecnico si quieres)
                                 .switchIfEmpty(
                                         // serviceToken != null && !serviceToken.isBlank()
                                         //     ? next.exchange(ClientRequest.from(request)
