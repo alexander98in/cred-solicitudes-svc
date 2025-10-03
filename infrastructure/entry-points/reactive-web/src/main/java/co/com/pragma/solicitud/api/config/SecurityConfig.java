@@ -44,17 +44,15 @@ public class SecurityConfig {
                         // CORS preflight
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Publicos (ej. docs)
-                        .pathMatchers("/actuator/**", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
-                        // Protegidos (ajusta a tu politica real):
-                        // Crear solicitud: ASESOR y CLIENTE
-                        .pathMatchers(HttpMethod.POST, "/api/v1/solicitudes").hasAnyAuthority("CLIENTE")
-                        // Listar solicitudes: ADMIN y ASESOR
-                        .pathMatchers(HttpMethod.GET, "/api/v1/solicitudes/listar").hasAnyAuthority("ADMIN","ASESOR")
-                        // (ejemplo) Obtener una solicitud por id: ADMIN, ASESOR, CLIENTE
-                        .pathMatchers(HttpMethod.GET, "/api/v1/solicitudes/lista-paginada").hasAnyAuthority("ADMIN", "ASESOR")
-                        // Cambiar estado de solicitud: ADMIN y ASESOR
-                        .pathMatchers(HttpMethod.PUT, "/api/v1/solicitudes/**").hasAnyAuthority("ADMIN","ASESOR")
+                        // públicos
+                        .pathMatchers("/actuator/**").permitAll()
+                        .pathMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
+                        // protegidos
+                        .pathMatchers(HttpMethod.POST, "/api/v1/solicitudes").hasAnyAuthority("CLIENTE")
+                        .pathMatchers(HttpMethod.GET,  "/api/v1/solicitudes/listar").hasAnyAuthority("ADMIN","ASESOR")
+                        .pathMatchers(HttpMethod.GET,  "/api/v1/solicitudes/lista-paginada").hasAnyAuthority("ADMIN","ASESOR")
+                        .pathMatchers(HttpMethod.PUT,  "/api/v1/solicitudes/**").hasAnyAuthority("ADMIN","ASESOR")
                         .anyExchange().authenticated()
                 )
                 .addFilterAt(authFilter, SecurityWebFiltersOrder.AUTHENTICATION)

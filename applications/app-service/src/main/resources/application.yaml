@@ -1,6 +1,16 @@
 server:
   port: ${SERVER_PORT_REQ:8081}
+  forward-headers-strategy: framework
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
 spring:
+  webflux:
+    base-path: /solicitud
   application:
     name: ${APP_NAME_REQ:cred-solicitud-svc}
   devtools:
@@ -12,8 +22,8 @@ spring:
     include: null
   r2dbc:
     url: ${SPRING_R2DBC_URL}
-    username: ${DB_USERNAME}
-    password:  ${DB_PASSWORD}
+    username: ${SPRING_R2DBC_USERNAME}
+    password:  ${SPRING_R2DBC_PASSWORD}
   sql.init.mode: "never"
   messages:
     basename: ${I18N_BASENAME_REQ:i18n/validation-messages}
@@ -26,8 +36,8 @@ adapters:
     port: ${DB_PORT:5432}
     database: ${DB_NAME:pragma_credi}
     schema: ${DB_SCHEMA:public}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:admin}
+    username: ${SPRING_R2DBC_USERNAME:postgres}
+    password: ${SPRING_R2DBC_PASSWORD:admin}
 
 management:
   endpoints:
@@ -36,6 +46,7 @@ management:
         include: "health,prometheus"
   endpoint:
     health:
+      show-details: always
       probes:
         enabled: true
 cors:
