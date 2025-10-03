@@ -15,12 +15,5 @@ public interface ApplicationUseCase {
     Flux<Application> getAllApplications();
     Mono<Application> getApplicationById(UUID id);
     Mono<PaginatedApplications> getApplicationsByPage(ApplicationFilter filter);
-
-    /**
-     * Aprueba o rechaza una solicitud cambiando su estado.
-     * @param idApplication ID de la solicitud
-     * @param targetStatus Nombre del estado destino ("Aprobada" o "Rechazada")
-     * @return Mono<ApplicationDetails> con la solicitud actualizada
-     */
     Mono<ApplicationDetails> changeApplicationStatus(UUID idApplication, String targetStatus);
 }

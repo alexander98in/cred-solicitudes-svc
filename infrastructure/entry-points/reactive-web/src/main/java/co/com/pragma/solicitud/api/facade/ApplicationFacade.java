@@ -18,11 +18,5 @@ public interface ApplicationFacade {
 
     Mono<PaginatedApplications> getApplicationsByPage(ApplicationFilter filter);
 
-    /**
-     * Aprueba o rechaza una solicitud cambiando su estado.
-     * @param idApplication id de la solicitud
-     * @param targetStatus nombre del estado destino ("Aprobada" o "Rechazada")
-     * @return Mono<ApplicationUpdateResponseDTO> con la solicitud actualizada
-     */
     Mono<ApplicationUpdateResponseDTO> changeApplicationStatus(String idApplication, String targetStatus);
 }
